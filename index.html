@@ -126,7 +126,7 @@ try{const r=indexedDB.open("meter-air",1);r.onupgradeneeded=()=>r.result.createO
 const rq=q=>new Promise((a,b)=>{q.onsuccess=()=>a(q.result);q.onerror=()=>b(q.error)});
 async function get(k){if(db){try{return await rq(db.transaction("r").objectStore("r").get(k))}catch(e){}}return mem.get(k)}
 async function lput(k,v){mem.set(k,v);if(db){try{await rq(db.transaction("r","readwrite").objectStore("r").put(v,k))}catch(e){}}}
-const GS="PASTE_URL_WEB_APP_/exec_DI_SINI",TOKEN="GANTI-DENGAN-KODE-RAHASIA";
+const GS="https://script.google.com/macros/s/AKfycbw7xpg9NAEQUiEplDhlrLI3l7KyjaNfikSaZYXVUGszELS0KNPlNOo_XRJD8_2n6JX2/exec",TOKEN="Tirto-04";
 const jl=k=>{try{return JSON.parse(localStorage.getItem(k)||"[]")}catch(e){return[]}},js=(k,a)=>{try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}};
 const mark=(k,on)=>{const a=jl("dirty").filter(x=>x!==k);if(on)a.push(k);js("dirty",a)};
 async function gs(a,p){const r=await fetch(GS,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:TOKEN,action:a},p||{}))});if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();if(!j.ok)throw new Error(j.error||"gagal");return j}
