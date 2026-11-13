@@ -70,6 +70,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
 .sy.pend .sd::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--c);animation:sdb 1.2s ease-in-out infinite}
 .sy.run .sd{width:16px;height:16px;background:transparent;border:2.5px solid color-mix(in srgb,var(--c) 25%,transparent);border-top-color:var(--c);animation:sds .7s linear infinite}
 .sy.err .sd{animation:sdb .8s ease-in-out infinite;box-shadow:0 0 8px var(--c)}
+.sy.warn{--c:#f59e0b}.sy.warn .sd{box-shadow:0 0 8px var(--c)}
 @keyframes sdb{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
 @keyframes sdr{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
 @keyframes sds{to{transform:rotate(360deg)}}
@@ -183,7 +184,47 @@ async function lput(k,v){mem.set(k,v);if(db){try{await rq(db.transaction("r","re
 const GS="https://script.google.com/macros/s/AKfycbw7xpg9NAEQUiEplDhlrLI3l7KyjaNfikSaZYXVUGszELS0KNPlNOo_XRJD8_2n6JX2/exec",TOKEN="Tirto-04";
 const jl=k=>{try{return JSON.parse(localStorage.getItem(k)||"[]")}catch(e){return[]}},js=(k,a)=>{try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}};
 const mark=(k,on)=>{const a=jl("dirty").filter(x=>x!==k);if(on)a.push(k);js("dirty",a)};
-async function gs(a,p){const r=await fetch(GS,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:TOKEN,action:a},p||{}))});if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();if(!j.ok)throw new Error(j.error||"gagal");return j}
+/* ===== Penjaga kuota Apps Script: hitung pemakaian, jeda otomatis, cadangan, lanjut sinkron saat kuota pulih ===== */
+let QLIM=(parseInt(ls.g("ql",""))||30)*60000,fastUntil=0,lastSy=0,QW=.8,QCYC=864e5,QSRV=18e5,QNET=6e5,QNETN=8,Q=null,qf=0;
+const QRX=/too much computer time|too many times|service invoked|quota|kuota/i,qSv=()=>ls.s("qz",JSON.stringify(Q));
+function qg(){if(!Q){try{Q=JSON.parse(ls.g("qz","null"))}catch(e){}if(!Q||typeof Q!=="object")Q={};for(const k of["s","n","ms","p","d","ov"])Q[k]=Q[k]||0;Q.r=Q.r||""}
+ if(Q.s&&!Q.p&&Date.now()-Q.s>=QCYC){Q.s=Q.n=Q.ms=Q.ov=0;qSv()}return Q}
+function qClr(man){const q=qg(),r=q.r;q.p=0;q.d=0;q.r="";if(r==="est"){if(man)q.ov=1;else{q.s=q.n=q.ms=q.ov=0}}qf=r==="est"?0:QNETN-1;qSv()}
+function qResume(man){qClr(man);sync(true)}
+const fastOn=()=>{fastUntil=Date.now()+12e4},progOn=()=>{const e=$("#v-prog");return!!e&&!e.classList.contains("hide")};
+function pollIv(){const n=Date.now(),f=(n<fastUntil||(role==="admin"&&progOn()))&&qPct()<50;return f?15e3:6e4}
+function qBlk(){const q=qg();if(!q.p)return false;if(Date.now()<q.p)return true;qClr(false);setTimeout(()=>sync(true),200);return false}
+const qPct=()=>Math.min(100,Math.round(qg().ms/QLIM*100));
+function qLeft(){const s=Math.max(0,Math.ceil((qg().p-Date.now())/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),c=s%60,z=x=>("0"+x).slice(-2);return(h?h+":":"")+z(m)+":"+z(c)}
+function qDl(){const q=qg();if(q.d)return;q.d=1;qSv();try{const b=$("#ex");if(b)b.click()}catch(e){}}
+function qHit(r){const q=qg(),n=Date.now();if(q.p&&n<q.p)return;q.r=r;q.p=r==="est"?Math.max((q.s||n)+QCYC,n+6e4):n+(r==="srv"?QSRV:QNET);q.d=0;qSv();if(r!=="net")qDl();qUI()}
+function qAdd(t0){const q=qg(),n=Date.now();if(!q.s)q.s=t0;q.n++;q.ms+=Math.max(0,n-t0);qSv();if(q.ms>=QLIM&&!q.ov)qHit("est")}
+function qFail(t0,e){if(e&&(e.srv||e.q===1)){qAdd(t0);qf=0;if(e.q===1||QRX.test(e.message||""))qHit("srv");return}
+ if(!navigator.onLine){qf=0;return}if(++qf>=QNETN)qHit("net")}
+function qSyx(t,k){if(typeof QLIM==="undefined")return[t,k];const q=qg();
+ if(q.p&&Date.now()<q.p)return["⏸ "+(q.r==="est"?"Kuota penuh · lanjut ":q.r==="srv"?"Kuota Google habis · coba lagi ":"Sinkron dijeda · coba lagi ")+qLeft()+". Data aman di HP.","off"];
+ if(q.ms){const p=qPct();if(p>=QW*100){t+=" · ⏱ "+p+"%";if(k==="ok")k="warn"}}return[t,k]}
+function qUI(){const c=$("#qcd");if(c)c.textContent=qLeft();if(qBlk()){const t=$("#sy .t");if(t)t.textContent=qSyx("","off")[0];else st("","off")}}
+function qModal(){const q=qg(),pa=qBlk(),p=qPct();let bt="";try{bt=ls.g("lastbk","")}catch(e){}
+ const old=document.getElementById("qov");if(old)old.remove();
+ const o=document.createElement("div");o.id="qov";o.style.cssText="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px";
+ const c=document.createElement("div");c.style.cssText="background:var(--card,#fff);color:var(--ink,#111);border-radius:16px;padding:18px;max-width:420px;width:100%;max-height:90vh;overflow:auto";
+ let h='<h3 style="margin:0 0 10px">⏱ Kuota sinkron</h3>';
+ if(pa)h+='<p style="font-weight:700;margin:0 0 6px">'+(q.r==="est"?"Kuota diperkirakan penuh":q.r==="srv"?"Kuota harian Google habis":"Sinkron dijeda (koneksi ke Sheet gagal berulang)")+'</p><p style="margin:0 0 6px">'+(q.r==="est"?"Sinkron lanjut otomatis":"Mencoba lagi")+' dalam <b id="qcd">'+qLeft()+'</b></p><p style="margin:0 0 6px">Selama dijeda, data tetap tersimpan di HP dan menunggu dikirim. Cadangan file diunduh otomatis. Begitu kuota pulih, data otomatis tersinkron lagi.</p>';
+ else h+='<p style="margin:0 0 6px">Perkiraan pemakaian: <b>'+p+'%</b> ('+Math.round(q.ms/60000)+" dari "+Math.round(QLIM/60000)+" menit per hari, "+q.n+' kali sinkron).</p><div style="height:10px;border-radius:6px;background:rgba(127,127,127,.25);overflow:hidden;margin:6px 0 10px"><div style="height:100%;width:'+p+'%;background:'+(p>=80?"#e08a00":"#16a34a")+'"></div></div><p style="margin:0 0 6px;font-size:13px">Dihitung dari waktu tunggu tiap sinkron di HP ini. Batas per HP sengaja dibuat lebih kecil dari kuota harian karena kuotanya dipakai bersama beberapa HP.</p>';
+ if(bt){const d=new Date(bt);if(!isNaN(d))h+='<p style="margin:0 0 6px;font-size:13px">Cadangan terakhir: '+d.toLocaleString("id-ID")+"</p>"}
+ c.innerHTML=h;o.appendChild(c);
+ const close=()=>o.remove(),btn=(txt,cls,fn)=>{const b=document.createElement("button");b.type="button";b.className=cls;b.style.cssText="width:100%;margin-top:8px";b.textContent=txt;b.onclick=fn;c.appendChild(b)};
+ btn("Unduh cadangan","btn p",()=>{const b=$("#ex");if(b)b.click()});
+ if(pa)btn("Coba sinkron sekarang","btn",()=>{qResume(true);close()});else btn("Sinkron sekarang","btn",()=>{sync(true);close()});
+ btn("Tutup","btn",close);o.onclick=e=>{if(e.target===o)close()};document.body.appendChild(o)}
+setInterval(()=>{const q=qg();if(!q.p)return;if(Date.now()>=q.p)qResume(false);else qUI()},1000);
+async function gs(a,p){if(qBlk()){const eb=new Error("kuota dijeda");eb.qb=1;throw eb}const t0=Date.now();let r,x;
+ try{r=await fetch(GS,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:TOKEN,action:a},p||{}))});x=await r.text()}catch(e){qFail(t0,e);throw e}
+ let j=null;try{j=JSON.parse(x)}catch(e){}
+ if(!r.ok||!j){const e0=new Error(r.ok?"respons tidak valid":"HTTP "+r.status);e0.q=QRX.test(x)?1:0;qFail(t0,e0);throw e0}
+ if(!j.ok){const e1=new Error(j.error||"gagal");e1.srv=1;qFail(t0,e1);throw e1}
+ qf=0;qAdd(t0);return j}
 async function upl(k,d){return (await gs("upload",{key:k,data:d})).url}
 async function rpush(k,v){await gs("put",{key:k,data:v})}
 async function rdel(k){await gs("del",{key:k})}
@@ -191,18 +232,18 @@ async function lall(){const m=new Map();if(db){try{const s=db.transaction("r").o
 const fmtT=iso=>{const d=new Date(iso);if(isNaN(d))return"";const t=d.toTimeString().slice(0,5),a=new Date(),dd=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()),g=Math.round((dd(a)-dd(d))/864e5);return g===0?"hari ini "+t:g===1?"kemarin "+t:d.getDate()+" "+B[d.getMonth()].slice(0,3)+" "+t};
 let ERR={},SYTOP="";
 const lbl=k=>{const q=String(k).split("_");if(q.length===3&&/^\d+$/.test(q[0])&&B[+q[2]])return(N[+q[0]-1]||"No "+q[0])+" · "+B[+q[2]]+" "+q[1];return({_cust:"Perubahan data konsumen",_lock:"Kunci bulan",_pin:"PIN"})[k]||k};
-const st=(t,k)=>{const e=$("#sy");if(!e)return;e.className="info sy "+(k||"run");e.innerHTML='<i class="sd"></i><span class="st"><span class="t"></span></span>';e.querySelector(".t").textContent=t;const lo=ls.g("lastok","");if(k!=="ok"&&k!=="run"&&lo){const s=document.createElement("small");s.className="sl";s.textContent="Terakhir berhasil: "+fmtT(lo);e.querySelector(".st").appendChild(s)}SYTOP=t;syd()};
+const st=(t,k)=>{const e=$("#sy");if(!e)return;{const z=qSyx(t,k);t=z[0];k=z[1]}e.className="info sy "+(k||"run");e.innerHTML='<i class="sd"></i><span class="st"><span class="t"></span></span>';e.querySelector(".t").textContent=t;const lo=ls.g("lastok","");if(k!=="ok"&&k!=="run"&&lo){const s=document.createElement("small");s.className="sl";s.textContent="Terakhir berhasil: "+fmtT(lo);e.querySelector(".st").appendChild(s)}SYTOP=t;syd()};
 function syd(){const b=$("#syb"),pn=$("#syp");if(!b||!pn)return;const dk=jl("dirty"),dl=jl("pdel"),n=dk.length+dl.length;b.classList.toggle("hide",!n);if(!n){pn.classList.add("hide");pn.innerHTML="";return}b.textContent="Detail ("+n+")";if(pn.classList.contains("hide"))return;pn.innerHTML="";const h=document.createElement("h4");h.textContent=n+" data belum terkirim";pn.appendChild(h);const ul=document.createElement("ul"),rows=[...dl.map(k=>[k,"d"]),...dk.map(k=>[k,ERR[k]?"x":"p"])];rows.slice(0,30).forEach(([k,c])=>{const li=document.createElement("li");li.className=c;const i=document.createElement("i"),d=document.createElement("div"),sm=document.createElement("small");d.textContent=lbl(k);sm.textContent=c==="d"?"Hapus menunggu dikirim":c==="x"?"Gagal: "+ERR[k]:"Menunggu dikirim";d.appendChild(sm);li.append(i,d);ul.appendChild(li)});pn.appendChild(ul);if(rows.length>30){const m=document.createElement("div");m.className="mo";m.textContent="+"+(rows.length-30)+" lainnya";pn.appendChild(m)}}
 {const lo=ls.g("lastok","");if(lo)st("Terakhir tersinkron "+fmtT(lo),"run")}
 document.addEventListener("click",e=>{if(e.target.id==="syb"){$("#syp").classList.toggle("hide");syd()}});
 let busy=false,again=false;
-async function put(k,v){await lput(k,v);mark(k,true);sync()}
-async function del(k){await ldel(k);mark(k,false);js("pdel",[...new Set([...jl("pdel"),k])]);sync()}
-async function sync(full){if(busy){again=true;return}if(!navigator.onLine){st("Offline. Data tersimpan di HP dan dikirim saat ada sinyal.","off");return}
+async function put(k,v){await lput(k,v);mark(k,true);fastOn();sync()}
+async function del(k){await ldel(k);mark(k,false);js("pdel",[...new Set([...jl("pdel"),k])]);fastOn();sync()}
+async function sync(full){if(busy){again=true;return}if(qBlk()){st("","off");return}lastSy=Date.now();if(!navigator.onLine){st("Offline. Data tersimpan di HP dan dikirim saat ada sinyal.","off");return}
  busy=true;again=false;ERR={};st("Menyinkronkan...","run");
  try{
   if(!ls.g("migrated","")){const a=await lall();js("dirty",[...new Set([...jl("dirty"),...a.keys()])]);ls.s("migrated","1")}
-  let bad=0,lastErr="";const nt=e=>{if(e instanceof TypeError)throw e};
+  let bad=0,lastErr="";const nt=e=>{if(e instanceof TypeError||(e&&e.qb))throw e};
   for(const k of jl("pdel")){try{await rdel(k);js("pdel",jl("pdel").filter(x=>x!==k))}catch(e){nt(e);bad++;ERR[k]=String(e.message||e);lastErr=k+": "+(e.message||e)}}
   for(const k of jl("dirty")){try{const o=await get(k);let v=o;
    if(!o){mark(k,false);continue}
@@ -215,14 +256,14 @@ async function sync(full){if(busy){again=true;return}if(!navigator.onLine){st("O
   if(full||!lp){const ks=new Set((await gs("keys")).keys),d2=new Set(jl("dirty"));
    if(ks.size)for(const k of loc.keys())if(!ks.has(k)&&!d2.has(k)){await ldel(k);ch=true}}
   const pn=await get("_pin");if(pn&&!jl("dirty").includes("_pin"))await takePin(pn);
-  if(ch)await loadExtra();
+  if(ch){fastOn();await loadExtra()}
   const p=jl("dirty").length+jl("pdel").length;ls.s("lastok",new Date().toISOString());st((bad?bad+" data gagal dikirim ("+lastErr.slice(0,90)+"). Data lain terkirim. Ketuk untuk coba lagi.":p?p+" data menunggu dikirim (ketuk untuk coba lagi)":"Tersinkron "+new Date().toTimeString().slice(0,5)),bad?"err":p?"pend":"ok")
  }catch(e){st("Belum tersinkron ("+(e.message||e)+"). Data aman di HP. Ketuk untuk coba lagi.","err")}
  busy=false;if(again)sync()}
-$("#sy").onclick=()=>sync(true);
+$("#sy").onclick=()=>{if(qBlk()||(qg().ms&&qPct()>=QW*100))qModal();else sync(true)};
 window.addEventListener("online",()=>sync());
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&role)sync()});
-setInterval(()=>{if(role&&!document.hidden)sync()},60000);
+setInterval(()=>{if(role&&!document.hidden&&Date.now()-lastSy>=pollIv()-500)sync()},5000);
 const key=(n,y,m)=>n+"_"+y+"_"+m;
 const yearFor=m=>Math.max(2026,m>now.getMonth()+1?now.getFullYear()-1:now.getFullYear());
 const opts=(el,list,ph)=>{el.innerHTML=(ph?'<option value="">'+ph+'</option>':'')+list.map((t,i)=>'<option value="'+i+'">'+t+'</option>').join("")};
