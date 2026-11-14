@@ -216,7 +216,7 @@ else if(t.dataset.i!=null){const i=+t.dataset.i;(S.r[P]??=[])[i]=t.value===''?nu
 document.addEventListener('input',e=>{if(e.target.id==='q'){Q=e.target.value;body()}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.dataset.i!=null||e.target.dataset.l!=null)){const a=[...document.querySelectorAll('#tb input[data-'+(e.target.dataset.i!=null?'i':'l')+']')],n=a[a.indexOf(e.target)+1];e.target.blur();n&&n.focus()}});
 /* ===== sinkron Google Sheet ===== */
-const API='PASTE_URL_WEB_APP_DI_SINI',TOKEN='GANTI_TOKEN_ANDA';
+const API='https://script.google.com/macros/s/AKfycbzqlXOQVR5V9RxJOKSP-blJZuPPPzFdzCKJ69OKg5g42RGwL4F_nIWWvPDh_fXI7aJX/exec',TOKEN='Tirto-04';
 function usr(){try{let n=localStorage.getItem('tu_user');if(!n){n=(prompt('Nama petugas (untuk catatan perubahan):')||'-').trim()||'-';localStorage.setItem('tu_user',n)}return n}catch(e){return'-'}}
 let SNAP=JSON.stringify(S.r),SNAPLK=JSON.stringify(S.lk||[]),busy=false,dirty=false,tm;
 const sy=t=>{const e=$('#sy');if(e)e.textContent=t},ON=()=>API.startsWith('http');
