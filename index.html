@@ -94,9 +94,11 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
 .cell{flex-direction:column;gap:2px}.cell.em{border-style:dashed;background:transparent;opacity:.75}.cell small{font-size:10px;opacity:.8}
 .cell.cur{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac);font-weight:700}.cell .nw{position:absolute;top:4px;left:4px;z-index:1;background:var(--ac);color:#fff;font:600 10px/1 system-ui,sans-serif;font-style:normal;padding:3px 6px;border-radius:999px}
 @media(prefers-reduced-motion:reduce){.sd,.sd::after{animation:none!important}.toast{transition:none}}
+.lw{position:relative;z-index:1;width:100%;max-width:400px;margin:auto}.lw .lc{max-width:none}.lw .lc+.lc{margin-top:14px;padding:16px 20px 18px}.rkt{font-size:22px;margin:0 0 8px}
+#login{padding-top:calc(env(safe-area-inset-top,0px) + 118px)}@media(max-height:600px){#login{padding-top:20px}}
 </style></head><body><main>
 <div id="login"><canvas id="bg3"></canvas><div id="ck"><b></b><span></span></div>
-<div class="lc">
+<div class="lw"><div class="lc">
  <img class="lgo lg" alt="Logo Tirto 04"><h1 class="ttl">Tirto Utomo Junrejo 04</h1>
  <label>Masuk sebagai</label>
  <select id="lr"><option value="petugas">Petugas pencatatan</option><option value="admin">Admin</option></select>
@@ -104,6 +106,10 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
  <p class="info err" id="le"></p>
  <button class="btn p" id="lb" style="width:100%">Masuk</button>
  <div class="cp">©SAMGUR</div>
+</div>
+<div class="lc rk"><h2 class="ttl rkt">Rekap Tirto</h2>
+ <div class="row"><input id="rkp" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN rekap" aria-label="PIN rekap"><button class="btn p" id="rkb" style="flex:0 0 104px">Buka</button></div>
+ <p class="info err" id="rke"></p></div>
 </div></div>
 <div id="app" class="hide"><div id="toast" class="toast" role="status" aria-live="polite"></div>
  <header><div class="hl"><img class="lgo hg" alt="Logo Tirto 04"><h1>Tirto Utomo Junrejo 04</h1></div><button class="btn" id="out" style="flex:0 0 auto">Keluar</button></header>
@@ -152,6 +158,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
  <section id="v-admin" class="hide">
   <label>PIN petugas baru</label><input id="pp" type="password" inputmode="numeric" placeholder="Kosongkan jika tidak diubah">
   <label>PIN admin baru</label><input id="pa" type="password" inputmode="numeric" placeholder="Kosongkan jika tidak diubah">
+  <label>PIN rekap baru</label><input id="prk" type="password" inputmode="numeric" placeholder="Kosongkan jika tidak diubah (belum diisi = rekap memakai PIN admin)">
   <div class="sp"></div><button class="btn p" id="sp" style="width:100%">Simpan PIN</button>
   <p class="info" id="pi"></p>
   <label>Kelola konsumen</label>
@@ -286,6 +293,15 @@ $("#lb").onclick=async()=>{const r=$("#lr").value,v=$("#lp").value,le=$("#le");
  else ok=v===ls.g("pin_"+r,r==="admin"?"9999":"1234");
  if(!ok){le.textContent="PIN salah. Coba lagi.";return}
  le.textContent="";ls.s("sesi",r);enter(r)};
+const REKAP_URL="rekap.html";
+$("#rkb").onclick=async()=>{const v=$("#rkp").value,e=$("#rke");
+  if(!PH()&&navigator.onLine){e.textContent="Memeriksa...";await pullPin()}
+  const ph=PH();let ok;
+  if(ph&&(ph.rekap||ph.admin)){if(!crypto.subtle){e.textContent="Buka lewat link https agar PIN bisa diperiksa.";return}const x=ph.rekap||ph.admin;ok=(await hp(v,x.s))===x.h}
+  else ok=v===ls.g("pin_rekap",ls.g("pin_admin","9999"));
+  if(!ok){e.textContent="PIN salah. Coba lagi.";return}
+  e.textContent="";$("#rkp").value="";ls.s("rekap_ok",String(Date.now()));location.href=REKAP_URL};
+$("#rkp").onkeydown=ev=>{if(ev.key==="Enter")$("#rkb").click()};
 $("#out").onclick=()=>{try{localStorage.removeItem("sesi")}catch(e){}role=null;$("#big").style.display="none";$("#app").classList.add("hide");$("#login").classList.remove("hide");show("catat",1)};
 let CV="catat";function show(v,np){if(!np&&v!==CV){try{history.pushState({v:v},"")}catch(e){}}CV=v;if(v==="catat")rebuild();["catat","album","prog","admin"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));if(v==="album")album();if(v==="prog")prog();if(v==="admin")count()}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
@@ -559,13 +575,13 @@ $("#xa").onclick=async()=>{const n=$("#xn").value.trim().toUpperCase(),i=$("#xi"
  CU.ext.push(n);await saveCust();$("#xn").value="";i.className="info";i.textContent="Ditambahkan sebagai nomor "+N.length+(rs?" (memakai ulang nomor yang dihapus dan belum punya catatan)":"")+". Otomatis tersinkron ke semua HP."};
 async function hasRec(no){let ks=[];if(db){try{ks=await rq(db.transaction("r").objectStore("r").getAllKeys())}catch(e){}}else ks=[...mem.keys()];return ks.some(k=>{const q=String(k).split("_");return q.length===3&&+q[0]===no})}
 async function count(){let n=0;if(db){try{n=await rq(db.transaction("r").objectStore("r").count())}catch(e){}}$("#am2").textContent="Jumlah catatan tersimpan di HP ini: "+n+" · Cadangan terakhir: "+(ls.g("lastbk","")?fmtT(ls.g("lastbk","")):"belum pernah")+(db?"":" (penyimpanan permanen tidak tersedia, data hilang saat halaman ditutup)")}
-$("#sp").onclick=async()=>{const pp=$("#pp").value,pa=$("#pa").value,m=$("#pi");
+$("#sp").onclick=async()=>{const pp=$("#pp").value,pa=$("#pa").value,pk=$("#prk").value,m=$("#pi");
  if(!crypto.subtle){m.textContent="Ganti PIN hanya bisa lewat link https.";return}
- if((pp&&pp.length<4)||(pa&&pa.length<4)){m.textContent="PIN minimal 4 karakter.";return}
+ if((pp&&pp.length<4)||(pa&&pa.length<4)||(pk&&pk.length<4)){m.textContent="PIN minimal 4 karakter.";return}
  const ph=PH()||{v:2};
  if((!ph.petugas&&!pp)||(!ph.admin&&!pa)){m.textContent="Untuk pertama kali, isi kedua PIN (petugas dan admin).";return}
- if(pp)ph.petugas=await mkpin(pp);if(pa)ph.admin=await mkpin(pa);
- ls.s("pinh",JSON.stringify(ph));await put("_pin",ph);$("#pp").value=$("#pa").value="";m.textContent="PIN tersimpan dan berlaku di semua HP. Disimpan dalam bentuk acak (hash), bukan teks asli."};
+ if(pp)ph.petugas=await mkpin(pp);if(pa)ph.admin=await mkpin(pa);if(pk)ph.rekap=await mkpin(pk);
+ ls.s("pinh",JSON.stringify(ph));await put("_pin",ph);$("#pp").value=$("#pa").value=$("#prk").value="";m.textContent="PIN tersimpan dan berlaku di semua HP. Disimpan dalam bentuk acak (hash), bukan teks asli."};
 $("#ex").onclick=async()=>{try{const s=db.transaction("r").objectStore("r"),[k,v]=await Promise.all([rq(s.getAllKeys()),rq(s.getAll())]);
  const u=URL.createObjectURL(new Blob([JSON.stringify(k.map((x,i)=>[x,v[i]]))],{type:"application/json"})),l=document.createElement("a");l.href=u;l.download="cadangan-meter-"+now.toISOString().slice(0,10)+".json";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);ls.s("lastbk",new Date().toISOString());$("#am2").textContent="Cadangan siap."}catch(e){$("#am2").textContent="Cadangan tidak jadi disimpan."}};
 $("#im").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const a=JSON.parse(r.result);for(const [k,v] of a){let w=v;if(k==="_cust"){const l=(await get("_cust"))||{ren:{},del:[],ext:[]};w={ren:Object.assign({},l.ren,v.ren),del:[...new Set([...l.del,...v.del])],ext:v.ext.length>=l.ext.length?v.ext:l.ext,tar:Object.assign({},l.tar,v.tar),base:Object.assign({},l.base,v.base)}}await put(k,w)}await loadExtra();$("#am2").textContent=$("#am3").textContent="Dipulihkan: "+a.length+" data."}catch(x){$("#am2").textContent=$("#am3").textContent="File cadangan tidak valid."}};r.readAsText(f)};
