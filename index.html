@@ -340,7 +340,7 @@ async function info(){const i=$("#nm").value;$("#no").value=i===""?"":+i+1;const
  if(p0==null){el.textContent="Belum ada meter "+B[pm]+" untuk konsumen ini. Admin bisa mengisi Meter awal di Kelola konsumen.";return}
  mh.textContent="Meter bulan lalu: ";{const b=document.createElement("b");b.textContent=p0;mh.appendChild(b)}
  const u=isNaN(a)?null:a-p0,bl=u==null||u<0?null:bil(+i+1,u);
- el.textContent=(u==null?"Belum ada angka bulan ini":"Pemakaian "+u+" m³")+(f?" · tarif "+rp(f.t)+"/m³"+(bl!=null?" · Tagihan "+rp(bl)+(f.m===50000?" (min "+rp(f.m)+")":""):""):" · ⚠ tarif belum diisi (Admin → Kelola konsumen)");if(u!=null&&(u<0||u>MAXU))el.className="info err";if(u!=null&&u>MAXU)el.textContent="⛔ Pemakaian "+u+" m³ tidak wajar (maksimal "+MAXU+" m³). Periksa angka meter. Tidak bisa disimpan."}
+ el.textContent=(u==null?"Belum ada angka bulan ini":"Pemakaian "+u+" m³")+(f?" · tarif "+rp(f.t)+"/m³"+(bl!=null?" · Tagihan "+rp(bl)+(f.m===50000?" (min "+rp(f.m)+")":""):""):" · ⚠ tarif belum diisi (Admin → Kelola konsumen)");if(u!=null&&(u<0||u>MAXU))el.className="info err";if(u!=null&&u<0)el.textContent="❌ Angka meter lebih kecil dari bulan lalu ("+p0+"), hasilnya minus "+u+" m³. Tidak bisa disimpan. Periksa lagi angka meter.";if(u!=null&&u>MAXU)el.textContent="⛔ Pemakaian "+u+" m³ tidak wajar (maksimal "+MAXU+" m³). Periksa angka meter. Tidak bisa disimpan."}
 ["#nm","#bl"].forEach(s=>$(s).onchange=info);$("#am").oninput=info;
 $("#mn").onclick=()=>{$("#am").value=Math.max(0,(+$("#am").value||0)-1);info()};
 $("#pl").onclick=()=>{$("#am").value=(+$("#am").value||0)+1;info()};
@@ -354,12 +354,13 @@ $("#sv").onclick=async()=>{const ms=$("#ms"),i=$("#nm").value,a=$("#am").value;m
  if(!photo){ms.textContent="Foto meteran belum diambil.";return}
  const m=+$("#bl").value,y=yearFor(m),k=key(+i+1,y,m);
  if(await isLocked(y,m)){ms.textContent="Bulan "+B[m]+" "+y+" sudah dikunci. Minta admin membuka kunci.";return}
- const pvx=await prevR(+i+1,y,m);if(pvx!=null&&+a-pvx>MAXU){ms.textContent="⛔ Pemakaian tidak wajar: "+(+a-pvx)+" m³ (bulan lalu "+pvx+", sekarang "+a+"). Batas maksimal "+MAXU+" m³, jadi tidak bisa disimpan. Periksa lagi angka meter dan foto.";return}
+ const pvx=await prevR(+i+1,y,m);if(isNaN(+a)||+a<0){ms.textContent="❌ Angka meter tidak valid (minus). Tidak bisa disimpan. Periksa lagi angka meter.";return}
+ if(pvx!=null&&+a<pvx){ms.textContent="❌ Angka meter ("+a+") lebih kecil dari bulan lalu ("+pvx+"), hasilnya minus "+(+a-pvx)+" m³. Tidak bisa disimpan. Periksa lagi angka meter dan foto.";return}
+ if(pvx!=null&&+a-pvx>MAXU){ms.textContent="⛔ Pemakaian tidak wajar: "+(+a-pvx)+" m³ (bulan lalu "+pvx+", sekarang "+a+"). Batas maksimal "+MAXU+" m³, jadi tidak bisa disimpan. Periksa lagi angka meter dan foto.";return}
  if(await get(k)&&ms.dataset.ow!==k){ms.dataset.ow=k;ms.textContent="Catatan "+B[m]+" untuk "+N[i]+" sudah ada. Ketuk Simpan lagi untuk menimpa.";return}ms.dataset.ow="";
  const hs=[];for(let d=1;d<=4;d++){const mm=((m-d)%12+12)%12,yy=m-d<0?y-1:y,r=await get(key(+i+1,yy,mm));if(!r)break;hs.push(r.a)}
  let w="";const cu=+a-(hs[0]||0);
- if(hs.length&&+a<hs[0])w="Angka meter ("+a+") lebih kecil dari bulan lalu ("+hs[0]+"). Meter tidak bisa mundur kecuali diganti.";
- else if(hs.length>=3){const df=[];for(let q=0;q<hs.length-1;q++){const x=hs[q]-hs[q+1];if(x>=0)df.push(x)}const av=df.length?df.reduce((p,q)=>p+q,0)/df.length:0;if(av>0&&cu>av*2.5&&cu-av>=5)w="Pemakaian "+cu+" m3 jauh di atas rata-rata (sekitar "+Math.round(av)+" m3)."}
+ if(hs.length>=3){const df=[];for(let q=0;q<hs.length-1;q++){const x=hs[q]-hs[q+1];if(x>=0)df.push(x)}const av=df.length?df.reduce((p,q)=>p+q,0)/df.length:0;if(av>0&&cu>av*2.5&&cu-av>=5)w="Pemakaian "+cu+" m3 jauh di atas rata-rata (sekitar "+Math.round(av)+" m3)."}
  if(w&&ms.dataset.wr!==k+":"+a){ms.dataset.wr=k+":"+a;ms.className="info err";ms.textContent="⚠ "+w+" Periksa lagi angka dan foto. Ketuk Simpan lagi jika memang benar.";return}ms.dataset.wr="";
  ms.className="info";ms.textContent="Mengambil lokasi...";const g=PL?await Promise.race([PL,new Promise(r=>setTimeout(()=>r(null),9000))]):null,tm=PT||new Date();
  const pv0=await prevR(+i+1,y,m),f0=tf(+i+1),u0=pv0==null?null:+a-pv0,tg0=u0==null||u0<0?null:bil(+i+1,u0,f0);
@@ -385,7 +386,7 @@ async function showBig(m,first){const A=ALB;if(!A)return;const r=A.recs[m];if(!r
  const L=bList(),ix=L.indexOf(m);$("#bk").textContent=B[m]+" "+ay+" · "+(ix+1)+" dari "+L.length;$("#bp").disabled=ix<=0;$("#bq").disabled=ix>=L.length-1;
  let u1=r.u,tg1=r.tg,why="";
  if(tg1==null){const pv=await prevR(+i+1,ay,m),f1=r.tr!=null?{t:r.tr,m:r.mn}:tf(+i+1);if(tk!==BTK)return;
-  if(pv==null)why="belum bisa dihitung (meter bulan lalu belum ada)";else if(r.a<pv)why="⚠ meter lebih kecil dari bulan lalu ("+pv+")";else if(!f1)why="tarif belum diisi";else{u1=r.a-pv;tg1=bil(+i+1,u1,f1)}}
+  if(pv==null)why="belum bisa dihitung (meter bulan lalu belum ada)";else if(r.a<pv)why="❌ meter lebih kecil dari bulan lalu ("+pv+")";else if(!f1)why="tarif belum diisi";else{u1=r.a-pv;tg1=bil(+i+1,u1,f1)}}
  const t=$("#bt");t.textContent="";const el=(c,x)=>{const d=document.createElement("div");d.className=c;if(x!=null)d.textContent=x;return d},row=(a,v)=>{const d=el("bl"),sp=document.createElement("span"),b=document.createElement("b");sp.textContent=a;if(v instanceof Node)b.appendChild(v);else b.textContent=v;d.append(sp,b);t.appendChild(d)};
  t.appendChild(el("ti",N[i]));t.appendChild(el("sb",B[m]+" "+ay));
  row("Angka meter",String(r.a));row("Dicatat",(r.t||"-")+(r.j?" pukul "+r.j:""));
@@ -634,7 +635,7 @@ function afilter(na){const q=$("#as").value.trim().toLowerCase(),sel=$("#an").va
  N.forEach((t,i)=>{if(DEL.has(i+1))return;const l=(i+1)+". "+t;if(q&&!l.toLowerCase().includes(q))return;n++;last=i;h+='<option value="'+i+'">'+l+'</option>'});
  $("#an").innerHTML=h;if(sel!==""&&$("#an").querySelector('option[value="'+sel+'"]'))$("#an").value=sel;else if(q&&n===1)$("#an").value=last;if(na!==1)album()}
 let DEL=new Set(),CU={ren:{},del:[],ext:[],tar:{},base:{}};
-const TR="5715515177211125222222522555522552222252225522521511571251525152222521222252222512251725522222552522122-525555222572-2252552722222525252222225222222252222252222222525522552222252225111255111111515",MN="0050050500050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000-000000000000-0000000000000000000000000000000000000000000000000000000000000000000000000000000",UNC=new Set([6,17,75,95,102,148,124,191,104,117]),BEBAN=5000,MAXU=800,TV={2:250,5:500,7:750,1:1000};
+const TR="5715515177211125222222522555522552222252225522521511571251525152222521222252222512251725522222552522122-525555222572-2252552722222525252222225222222252222252222222525522552222252225111255111111515",MN="0050050500050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000-000000000000-0000000000000000000000000000000000000000000000000000000000000000000000000000000",UNC=new Set([6,17,75,95,102,148,124,191,104,117]),BEBAN=5000,MAXU=499,TV={2:250,5:500,7:750,1:1000};
 const rp=n=>"Rp"+Number(n).toLocaleString("id-ID");
 function tf(no){const o=CU.tar&&CU.tar[no];if(o)return{t:o[0],m:o[1]};const c=TR[no-1];if(!c||c==="-")return null;return{t:TV[c],m:MN[no-1]==="5"?50000:10000}}
 function bil(no,use,f){f=f||tf(no);if(!f||use==null||isNaN(use))return null;return Math.max(BEBAN+use*f.t,f.m)}
