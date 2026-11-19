@@ -141,6 +141,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
  <section id="v-catat">
   <label>Nama konsumen</label><input id="sq" type="search" placeholder="Cari nama atau nomor" autocomplete="off"><div style="height:8px"></div><select id="nm"></select><p class="info" id="sc"></p>
   <label>Bulan</label><select id="bl"></select>
+   <label class="xk hide" id="edw"><input type="checkbox" id="ed">Mode edit: tampilkan juga yang sudah dicatat (khusus Admin)</label>
   <div class="mini"><div><small>No</small><input id="no" readonly></div><div><small>Tanggal catat</small><input id="tg" readonly></div></div>
   <label>Angka meter</label>
   <div class="row"><button class="btn sm" id="mn">−</button><input id="am" type="number" inputmode="numeric" min="0" placeholder="0"><button class="btn sm" id="pl">+</button></div>
@@ -148,6 +149,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <p class="info" id="inf"></p>
   <label>Foto meteran</label>
   <label class="pic" id="pc" style="font-weight:400;margin:0;position:relative"><span id="ph">📷 Ketuk untuk memotret meteran</span><img id="pv" class="hide" alt="Foto meteran"><span id="pr" class="rt hide">Ketuk untuk ambil ulang</span><input id="ft" type="file" accept="image/*" capture="environment" style="position:absolute;inset:0;width:100%;height:100%;opacity:0"></label>
+  <label class="xk hide" id="nofw"><input type="checkbox" id="nof">Isi tanpa foto (khusus Admin, untuk data bulan sebelumnya)</label>
   <div class="sp"></div><button class="btn p" id="sv" style="width:100%">Simpan</button>
   <p class="info" id="ms"></p>
  </section>
@@ -307,7 +309,7 @@ const opts=(el,list,ph)=>{el.innerHTML=(ph?'<option value="">'+ph+'</option>':''
 const NN=N.map((t,i)=>(i+1)+". "+t);opts($("#nm"),NN,"Pilih nama konsumen");opts($("#an"),NN,"Pilih nama konsumen");opts($("#bl"),B);opts($("#pm"),B);
 $("#bl").value=now.getMonth();
 $("#tg").value=String(now.getDate()).padStart(2,"0")+"/"+String(now.getMonth()+1).padStart(2,"0")+"/"+now.getFullYear();
-function enter(r){role=r;sync();$("#login").classList.add("hide");$("#app").classList.remove("hide");$("#na").classList.toggle("hide",r!=="admin");rebuild();$("#lp").value="";$("#le").textContent=""}
+function enter(r){role=r;sync();$("#login").classList.add("hide");$("#app").classList.remove("hide");$("#na").classList.toggle("hide",r!=="admin");$("#nofw").classList.toggle("hide",r!=="admin");$("#edw").classList.toggle("hide",r!=="admin");$("#ed").checked=false;$("#nof").checked=false;$("#pc").classList.remove("hide");rebuild();$("#lp").value="";$("#le").textContent=""}
 const hx=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
 async function hp(pin,salt){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return hx(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:new TextEncoder().encode(salt),iterations:100000},k,256))}
 async function mkpin(pin){const s=hx(crypto.getRandomValues(new Uint8Array(8)));return{s,h:await hp(pin,s)}}
@@ -331,7 +333,7 @@ $("#rkb").onclick=async()=>{const v=$("#rkp").value,e=$("#rke");
   if(!ok){e.textContent="PIN salah. Coba lagi.";return}
   e.textContent="";$("#rkp").value="";ls.s("rekap_ok",String(Date.now()));location.href=REKAP_URL};
 $("#rkp").onkeydown=ev=>{if(ev.key==="Enter")$("#rkb").click()};
-$("#out").onclick=()=>{try{localStorage.removeItem("sesi")}catch(e){}role=null;$("#big").style.display="none";$("#app").classList.add("hide");$("#login").classList.remove("hide");show("catat",1)};
+$("#out").onclick=()=>{try{localStorage.removeItem("sesi")}catch(e){}role=null;$("#ed").checked=false;$("#edw").classList.add("hide");$("#nof").checked=false;$("#nofw").classList.add("hide");$("#pc").classList.remove("hide");$("#big").style.display="none";$("#app").classList.add("hide");$("#login").classList.remove("hide");show("catat",1)};
 let CV="catat";function show(v,np){if(!np&&v!==CV){try{history.pushState({v:v},"")}catch(e){}}CV=v;if(v==="catat")rebuild();["catat","album","prog","admin"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));if(v==="album")album();if(v==="prog")prog();if(v==="admin")count()}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 async function info(){const i=$("#nm").value;$("#no").value=i===""?"":+i+1;const el=$("#inf"),mh=$("#mh");el.className="info";mh.textContent="";
@@ -348,10 +350,15 @@ let PL=null,PT=null,TT=0;
 function toast(t){const e=$("#toast");e.textContent="";const c=document.createElement("b");c.textContent="✓";e.append(c,document.createTextNode(t));e.classList.add("on");try{navigator.vibrate&&navigator.vibrate(40)}catch(x){}clearTimeout(TT);TT=setTimeout(()=>e.classList.remove("on"),2600)}
 function getLoc(){return new Promise(ok=>{if(!navigator.geolocation)return ok(null);try{navigator.geolocation.getCurrentPosition(p=>ok({la:+p.coords.latitude.toFixed(6),lo:+p.coords.longitude.toFixed(6),ac:Math.round(p.coords.accuracy)}),()=>ok(null),{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}catch(e){ok(null)}})}
 $("#ft").onchange=e=>{const f=e.target.files[0];if(!f)return;PT=new Date();PL=getLoc();const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,800/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);photo=c.toDataURL("image/jpeg",.5);$("#pv").src=photo;$("#pv").classList.remove("hide");$("#ph").classList.add("hide");$("#pr").classList.remove("hide")};im.src=r.result};r.readAsDataURL(f)};
+$("#ed").onchange=()=>{$("#nm").value="";$("#am").value="";$("#ms").textContent="";rebuild()};
+$("#nm").addEventListener("change",async()=>{if(!($("#ed").checked&&role==="admin"))return;const i=$("#nm").value;if(i==="")return;const m=+$("#bl").value,r=await get(key(+i+1,yearFor(m),m));if(r&&typeof r==="object"){$("#am").value=r.a;const ms=$("#ms");ms.className="info";ms.textContent="Mengedit catatan yang sudah ada"+(r.p?". Foto lama dipertahankan kalau tidak memotret ulang.":" (tanpa foto).");info()}});
+$("#nof").onchange=()=>{$("#pc").classList.toggle("hide",$("#nof").checked)};
 $("#sv").onclick=async()=>{const ms=$("#ms"),i=$("#nm").value,a=$("#am").value;ms.className="info err";
  if(i===""){ms.textContent="Pilih nama konsumen dulu.";return}
  if(a===""){ms.textContent="Isi angka meter dulu.";return}
- if(!photo){ms.textContent="Foto meteran belum diambil.";return}
+ const noFoto=role==="admin"&&$("#nof").checked,edm=role==="admin"&&$("#ed").checked;let ex0=null;
+  if(edm&&i!==""){const m0=+$("#bl").value;ex0=await get(key(+i+1,yearFor(m0),m0));if(!ex0||typeof ex0!=="object")ex0=null}
+  if(!photo&&!noFoto&&!(ex0&&ex0.p)){ms.textContent="Foto meteran belum diambil.";return}
  const m=+$("#bl").value,y=yearFor(m),k=key(+i+1,y,m);
  if(await isLocked(y,m)){ms.textContent="Bulan "+B[m]+" "+y+" sudah dikunci. Minta admin membuka kunci.";return}
  const pvx=await prevR(+i+1,y,m);if(isNaN(+a)||+a<0){ms.textContent="❌ Angka meter tidak valid (minus). Tidak bisa disimpan. Periksa lagi angka meter.";return}
@@ -364,9 +371,10 @@ $("#sv").onclick=async()=>{const ms=$("#ms"),i=$("#nm").value,a=$("#am").value;m
  if(w&&ms.dataset.wr!==k+":"+a){ms.dataset.wr=k+":"+a;ms.className="info err";ms.textContent="⚠ "+w+" Periksa lagi angka dan foto. Ketuk Simpan lagi jika memang benar.";return}ms.dataset.wr="";
  ms.className="info";ms.textContent="Mengambil lokasi...";const g=PL?await Promise.race([PL,new Promise(r=>setTimeout(()=>r(null),9000))]):null,tm=PT||new Date();
  const pv0=await prevR(+i+1,y,m),f0=tf(+i+1),u0=pv0==null?null:+a-pv0,tg0=u0==null||u0<0?null:bil(+i+1,u0,f0);
- await put(k,{a:+a,t:$("#tg").value,j:String(tm.getHours()).padStart(2,"0")+":"+String(tm.getMinutes()).padStart(2,"0"),g,tr:f0?f0.t:null,mn:f0?f0.m:null,u:u0,tg:tg0,p:photo});PL=PT=null;
+ const kp=!photo&&ex0,pf=photo||(ex0&&ex0.p)||"";
+  await put(k,{a:+a,t:kp?ex0.t:$("#tg").value,j:kp?ex0.j:String(tm.getHours()).padStart(2,"0")+":"+String(tm.getMinutes()).padStart(2,"0"),g:kp?ex0.g:g,tr:f0?f0.t:null,mn:f0?f0.m:null,u:u0,tg:tg0,p:pf,nf:pf?0:1});PL=PT=null;
  ms.className="info ok";toast("Tersimpan: "+N[i]+(tg0!=null?" · "+rp(tg0):""));ms.textContent="Tersimpan: "+N[i]+", "+B[m]+" "+y+"."+(tg0!=null?" Tagihan "+rp(tg0)+".":"")+(g?" Lokasi tercatat.":" Lokasi tidak tersedia (izinkan lokasi di browser).");
- photo=null;$("#pv").classList.add("hide");$("#pr").classList.add("hide");$("#ph").classList.remove("hide");$("#ft").value="";$("#am").value="";$("#nm").value="";$("#sq").value="";await rebuild();info()};
+ photo=null;$("#nof").checked=false;$("#pc").classList.remove("hide");$("#pv").classList.add("hide");$("#pr").classList.add("hide");$("#ph").classList.remove("hide");$("#ft").value="";$("#am").value="";$("#nm").value="";$("#sq").value="";await rebuild();info()};
 let AT=0,AY0=0,AY1=0,ALB=null,ABM=-1,BTK=0;
 async function yrs(){let ks=[];if(db){try{ks=await rq(db.transaction("r").objectStore("r").getAllKeys())}catch(e){}}else ks=[...mem.keys()];let lo=Math.min(2026,now.getFullYear()-3),hi=Math.max(2035,now.getFullYear()+3);ks.forEach(k=>{const q=String(k).split("_");if(q.length===3&&/^\d+$/.test(q[0])){const y=+q[1];if(y>1999&&y<2100){lo=Math.min(lo,y);hi=Math.max(hi,y)}}});return[lo,hi]}
 async function album(){const tk=++AT,i=$("#an").value,g=$("#gr"),[lo,hi]=await yrs();if(tk!==AT)return;
@@ -376,12 +384,12 @@ async function album(){const tk=++AT,i=$("#an").value,g=$("#gr"),[lo,hi]=await y
  ALB={i,recs:recs.map(r=>r&&typeof r==="object"?r:null)};g.innerHTML="";
  const ty=now.getFullYear()===ay?now.getMonth():-1;
  for(let m=0;m<12;m++){const c=document.createElement("button"),r=ALB.recs[m];c.className="cell"+(r?"":" em")+(m===ty?" cur":"");
-  if(r){const im=document.createElement("img");im.alt=B[m];im.src=r.p||"";const b=document.createElement("b");b.textContent=B[m]+" · "+r.a+(r.j?" · "+r.j:"")+(r.g?" 📍":"");c.append(im,b);c.onclick=()=>showBig(m,1)}
+  if(r){const im=document.createElement("img");im.alt=B[m];if(r.p)im.src=r.p;else im.classList.add("hide");const b=document.createElement("b");b.textContent=B[m]+" · "+r.a+(r.j?" · "+r.j:"")+(r.g?" 📍":"");c.append(im,b);if(!r.p){const np=document.createElement("small");np.textContent="tanpa foto";c.appendChild(np)}c.onclick=()=>showBig(m,1)}
   else{const sp=document.createElement("span");sp.textContent=B[m];const sm=document.createElement("small");sm.textContent="belum ada";c.append(sp,sm)}
   if(m===ty){const nw=document.createElement("i");nw.className="nw";nw.textContent="Bulan ini";c.appendChild(nw)}
   g.appendChild(c)}}
 const bList=()=>ALB?ALB.recs.map((x,k)=>x?k:-1).filter(k=>k>=0):[];
-async function showBig(m,first){const A=ALB;if(!A)return;const r=A.recs[m];if(!r)return;const i=A.i,tk=++BTK;ABM=m;cur=key(+i+1,ay,m);zreset();$("#bi").src=r.p||"";
+async function showBig(m,first){const A=ALB;if(!A)return;const r=A.recs[m];if(!r)return;const i=A.i,tk=++BTK;ABM=m;cur=key(+i+1,ay,m);zreset();if(r.p){$("#bi").src=r.p;$("#bi").style.visibility="visible"}else{$("#bi").removeAttribute("src");$("#bi").style.visibility="hidden"}
  if(first&&$("#big").style.display!=="flex"){$("#bt").textContent="";try{history.pushState({v:CV,big:1},"")}catch(e){}$("#big").style.display="flex"}
  const L=bList(),ix=L.indexOf(m);$("#bk").textContent=B[m]+" "+ay+" · "+(ix+1)+" dari "+L.length;$("#bp").disabled=ix<=0;$("#bq").disabled=ix>=L.length-1;
  let u1=r.u,tg1=r.tg,why="";
@@ -627,7 +635,8 @@ async function prog(){const tk=++PGT;$("#tv").innerHTML="";$("#kv").innerHTML=""
  LK.ok=ok;LK.u=u;SH.ok=SH.u=10;drawPu();lkui(m,y,d===act)}
 async function doneSet(m,y0){const y=y0||yearFor(m),s=new Set();let ks=[];if(db){try{ks=await rq(db.transaction("r").objectStore("r").getAllKeys())}catch(e){}}else ks=[...mem.keys()];ks.forEach(k=>{const q=String(k).split("_");if(+q[1]===y&&+q[2]===m)s.add(+q[0])});return s}
 async function rebuild(){const m=+$("#bl").value,d=await doneSet(m),q=$("#sq").value.trim().toLowerCase(),sel=$("#nm").value;let h='<option value="">Pilih nama konsumen</option>',n=0;
- N.forEach((t,i)=>{if(d.has(i+1)||DEL.has(i+1))return;const l=(i+1)+". "+t;if(q&&!l.toLowerCase().includes(q))return;n++;h+='<option value="'+i+'">'+l+'</option>'});
+ const edm=role==="admin"&&$("#ed").checked;
+ N.forEach((t,i)=>{if((d.has(i+1)&&!edm)||DEL.has(i+1))return;const l=(i+1)+". "+t;if(q&&!l.toLowerCase().includes(q))return;n++;h+='<option value="'+i+'">'+(edm&&d.has(i+1)?"✓ ":"")+l+'</option>'});
  $("#nm").innerHTML=h;if(sel!==""&&$("#nm").querySelector('option[value="'+sel+'"]'))$("#nm").value=sel;
  $("#sc").textContent=(q&&!n)?"Tidak ada nama yang cocok, atau sudah dicatat bulan ini.":"Belum dicatat bulan ini: "+(N.length-DEL.size-[...d].filter(x=>!DEL.has(x)).length)+" dari "+(N.length-DEL.size)+(q?" · hasil pencarian: "+n:"")+((await isLocked(yearFor(m),m))?" · 🔒 Bulan ini dikunci, tidak bisa menyimpan.":"");info()}
 $("#sq").oninput=rebuild;$("#bl").addEventListener("change",rebuild);
