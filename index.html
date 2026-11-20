@@ -38,7 +38,7 @@ input[readonly]{color:var(--ink);background:#e9f2fc}
 @media(max-height:600px){#ck{position:static;margin-bottom:12px}#login{flex-direction:column}}#ck b{display:block;font-size:46px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:1px}#ck span{font-size:17px;font-weight:600}
 .lc{position:relative;z-index:1;width:100%;max-width:400px;background:rgba(255,255,255,.84);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);border:1px solid rgba(255,255,255,.7);border-radius:20px;padding:22px 20px;box-shadow:0 24px 60px rgba(3,15,50,.55),0 0 0 6px rgba(255,255,255,.12)}
 .ttl{font-family:"Pacifico","Brush Script MT","Segoe Script",cursive;font-size:30px;font-weight:400;text-align:center;color:var(--ac);line-height:1.3;margin:0 0 10px}header h1{font-family:"Pacifico","Brush Script MT","Segoe Script",cursive;font-size:19px;font-weight:400;color:var(--ac)}
-.pr{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:5px 0;font:inherit;white-space:pre-line;cursor:pointer}#pu b{display:block;margin:10px 0 2px;color:var(--ink)}.ym{display:grid;grid-template-columns:repeat(12,1fr);gap:1px;margin-top:4px;text-align:center}.ym span{font-size:14px;line-height:1.3}.ym small{display:block;font-size:9px;color:var(--mut)}
+.pr{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:5px 0;font:inherit;white-space:pre-line;cursor:pointer}#pu b{display:block;margin:10px 0 2px;color:var(--ink)}
 #prt{display:none}
 .pg{display:grid;grid-template-columns:1fr 1fr;column-gap:10mm;grid-template-rows:repeat(5,1fr);height:280mm;break-after:page}
 .pg:last-child{break-after:auto}
@@ -163,7 +163,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <label id="lbm">Bulan</label><select id="pm"></select>
   <label id="lby">Tahun</label><select id="py"></select>
   <p class="info" id="pt" style="font-weight:600;color:var(--ink);margin-top:14px"></p><div class="pbar"><i id="pbi"></i></div><div class="pk" id="pk"></div>
-  <input id="ps" type="search" placeholder="Cari nama atau nomor" autocomplete="off" style="margin-top:12px"><div id="fc" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm p" data-f="all">Semua</button><button class="btn sm" data-f="u">Belum dicatat</button><button class="btn sm" data-f="b">Ada ❌ ⛔ ⚠</button></div><p class="info" style="margin:6px 0 6px">Ketuk nama untuk membuka album fotonya.</p>
+  <input id="ps" type="search" placeholder="Cari nama atau nomor" autocomplete="off" style="margin-top:12px"><p class="info" style="margin:6px 0 6px">Ketuk nama untuk membuka album fotonya.</p>
   <div id="pu" class="info"></div>
   <button class="btn hide" id="lk" style="width:100%;margin-top:12px">Kunci bulan ini</button>
   <p class="info" id="lks"></p>
@@ -202,6 +202,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <label>Cadangan data</label>
   <div class="row"><button class="btn" id="ex">Unduh cadangan</button><label class="btn" style="margin:0;text-align:center">Pulihkan<input id="im" type="file" accept=".json,.txt,application/json,text/plain" class="hide"></label></div>
   <p class="info" id="am2"></p>
+  <button class="btn" id="qshow" style="width:100%;margin-top:8px">⏱ Lihat pemakaian kuota sinkron</button>
  </section>
  <footer class="cp">©SAMGUR</footer>
 </div>
@@ -231,12 +232,12 @@ function qg(){if(!Q){try{Q=JSON.parse(ls.g("qz","null"))}catch(e){}if(!Q||typeof
 function qClr(man){const q=qg(),r=q.r;q.p=0;q.d=0;q.r="";if(r==="est"){if(man)q.ov=1;else{q.s=q.n=q.ms=q.ov=0}}qf=r==="est"?0:QNETN-1;qSv()}
 function qResume(man){qClr(man);sync(true)}
 const fastOn=()=>{fastUntil=Date.now()+12e4},progOn=()=>{const e=$("#v-prog");return!!e&&!e.classList.contains("hide")};
-function pollIv(){const n=Date.now(),f=role==="admin"&&(n<fastUntil||progOn())&&qPct()<50;return f?15e3:6e4}
+function pollIv(){const n=Date.now(),f=(n<fastUntil||(role==="admin"&&progOn()))&&qPct()<50;return f?15e3:6e4}
 function qBlk(){const q=qg();if(!q.p)return false;if(Date.now()<q.p)return true;qClr(false);setTimeout(()=>sync(true),200);return false}
 const qPct=()=>Math.min(100,Math.round(qg().ms/QLIM*100));
 function qLeft(){const s=Math.max(0,Math.ceil((qg().p-Date.now())/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),c=s%60,z=x=>("0"+x).slice(-2);return(h?h+":":"")+z(m)+":"+z(c)}
-function qDl(){const q=qg();if(q.d)return;q.d=1;qSv();const td=new Date().toDateString();if(ls.g("qdl","")===td)return;ls.s("qdl",td);try{const b=$("#ex");if(b)b.click()}catch(e){}}
-function qHit(r){const q=qg(),n=Date.now();if(q.p&&n<q.p)return;q.r=r;q.p=n+(r==="est"||r==="srv"?QSRV:QNET);q.d=0;qSv();if(r!=="net")qDl();qUI()}
+function qDl(){const q=qg();if(q.d)return;q.d=1;qSv();try{const b=$("#ex");if(b)b.click()}catch(e){}}
+function qHit(r){const q=qg(),n=Date.now();if(q.p&&n<q.p)return;q.r=r;q.p=r==="est"?Math.max((q.s||n)+QCYC,n+6e4):n+(r==="srv"?QSRV:QNET);q.d=0;qSv();if(r!=="net")qDl();qUI()}
 function qAdd(t0){const q=qg(),n=Date.now();if(!q.s)q.s=t0;q.n++;q.ms+=Math.max(0,n-t0);qSv();if(q.ms>=QLIM&&!q.ov)qHit("est")}
 function qFail(t0,e){if(e&&(e.srv||e.q===1)){qAdd(t0);qf=0;if(e.q===1||QRX.test(e.message||""))qHit("srv");return}
  if(!navigator.onLine){qf=0;return}if(++qf>=QNETN)qHit("net")}
@@ -292,13 +293,16 @@ async function sync(full){if(busy){again=true;return}if(qBlk()){st("","off");ret
   const lp=ls.g("lastpull2",""),rows=(await gs("pull",{since:lp})).rows,loc=await lall(),dirty=new Set(jl("dirty"));let ch=false,mx=0;
   for(const r of rows){mx=Math.max(mx,+new Date(r.updated_at)||0);if(dirty.has(r.key))continue;if(JSON.stringify(loc.get(r.key))!==JSON.stringify(r.data)){await lput(r.key,r.data);ch=true}}
   if(mx)ls.s("lastpull2",new Date(mx-600000).toISOString());
-  if(full||!lp){const ks=new Set((await gs("keys")).keys),d2=new Set(jl("dirty"));
-   if(ks.size)for(const k of loc.keys())if(!ks.has(k)&&!d2.has(k)){await ldel(k);ch=true}}
+  const af=Date.now()-(+ls.g("lastfull","0"))>=300000;
+  if(full||!lp||af){const ks=new Set((await gs("keys")).keys),d2=new Set(jl("dirty"));
+   if(ks.size)for(const k of loc.keys())if(!ks.has(k)&&!d2.has(k)){await ldel(k);ch=true}
+   ls.s("lastfull",String(Date.now()))}
   const pn=await get("_pin");if(pn&&!jl("dirty").includes("_pin"))await takePin(pn);
   if(ch){fastOn();await loadExtra()}
   const p=jl("dirty").length+jl("pdel").length;ls.s("lastok",new Date().toISOString());st((bad?bad+" data gagal dikirim ("+lastErr.slice(0,90)+"). Data lain terkirim. Ketuk untuk coba lagi.":p?p+" data menunggu dikirim (ketuk untuk coba lagi)":"Tersinkron "+new Date().toTimeString().slice(0,5)),bad?"err":p?"pend":"ok")
  }catch(e){st("Belum tersinkron ("+(e.message||e)+"). Data aman di HP. Ketuk untuk coba lagi.","err")}
  busy=false;if(again)sync()}
+$("#qshow").onclick=()=>qModal();
 $("#sy").onclick=()=>{if(qBlk()||(qg().ms&&qPct()>=QW*100))qModal();else sync(true)};
 window.addEventListener("online",()=>sync());
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&role)sync()});
@@ -372,7 +376,7 @@ $("#sv").onclick=async()=>{const ms=$("#ms"),i=$("#nm").value,a=$("#am").value;m
  ms.className="info";ms.textContent="Mengambil lokasi...";const g=PL?await Promise.race([PL,new Promise(r=>setTimeout(()=>r(null),9000))]):null,tm=PT||new Date();
  const pv0=await prevR(+i+1,y,m),f0=tf(+i+1),u0=pv0==null?null:+a-pv0,tg0=u0==null||u0<0?null:bil(+i+1,u0,f0);
  const kp=!photo&&ex0,pf=photo||(ex0&&ex0.p)||"";
-  await put(k,{a:+a,t:kp?ex0.t:$("#tg").value,j:kp?ex0.j:String(tm.getHours()).padStart(2,"0")+":"+String(tm.getMinutes()).padStart(2,"0"),g:kp?ex0.g:g,tr:f0?f0.t:null,mn:f0?f0.m:null,u:u0,tg:tg0,p:pf,nf:pf?0:1});PL=PT=null;
+  await put(k,{a:+a,t:kp?ex0.t:$("#tg").value,j:kp?ex0.j:String(tm.getHours()).padStart(2,"0")+":"+String(tm.getMinutes()).padStart(2,"0"),g:kp?ex0.g:g,tr:f0?f0.t:null,mn:f0?f0.m:null,u:u0,tg:tg0,p:pf,nf:pf?0:1,kb:photo?Math.round((photo.length-23)*.75/1024):(ex0&&ex0.kb)||0});PL=PT=null;
  ms.className="info ok";toast("Tersimpan: "+N[i]+(tg0!=null?" · "+rp(tg0):""));ms.textContent="Tersimpan: "+N[i]+", "+B[m]+" "+y+"."+(tg0!=null?" Tagihan "+rp(tg0)+".":"")+(g?" Lokasi tercatat.":" Lokasi tidak tersedia (izinkan lokasi di browser).");
  photo=null;$("#nof").checked=false;$("#pc").classList.remove("hide");$("#pv").classList.add("hide");$("#pr").classList.add("hide");$("#ph").classList.remove("hide");$("#ft").value="";$("#am").value="";$("#nm").value="";$("#sq").value="";await rebuild();info()};
 let AT=0,AY0=0,AY1=0,ALB=null,ABM=-1,BTK=0;
@@ -399,7 +403,9 @@ async function showBig(m,first){const A=ALB;if(!A)return;const r=A.recs[m];if(!r
  t.appendChild(el("ti",N[i]));t.appendChild(el("sb",B[m]+" "+ay));
  row("Angka meter",String(r.a));row("Dicatat",(r.t||"-")+(r.j?" pukul "+r.j:""));
  if(tg1!=null){row("Pemakaian",u1+" m³");row("Tagihan",rp(tg1))}else row("Tagihan",why);
- if(r.g){const a=document.createElement("a");a.href="https://www.google.com/maps?q="+Number(r.g.la)+","+Number(r.g.lo);a.target="_blank";a.rel="noopener";a.textContent="Lihat lokasi ("+Number(r.g.la)+", "+Number(r.g.lo)+(r.g.ac?", ±"+Number(r.g.ac)+" m":"")+")";row("Lokasi",a)}else row("Lokasi","tidak tersimpan")}
+ if(r.g){const a=document.createElement("a");a.href="https://www.google.com/maps?q="+Number(r.g.la)+","+Number(r.g.lo);a.target="_blank";a.rel="noopener";a.textContent="Lihat lokasi ("+Number(r.g.la)+", "+Number(r.g.lo)+(r.g.ac?", ±"+Number(r.g.ac)+" m":"")+")";row("Lokasi",a)}else row("Lokasi","tidak tersimpan");
+ if(r.p){const sp2=document.createElement("span"),dt=String(r.p).startsWith("data:");sp2.textContent=r.kb?r.kb+" KB":dt?Math.round((r.p.length-23)*.75/1024)+" KB":"menghitung…";row("Ukuran foto",sp2);
+  if(!r.kb&&!dt){fetch(r.p).then(x=>x.blob()).then(b=>{if(tk===BTK)sp2.textContent=Math.round(b.size/1024)+" KB"}).catch(()=>{if(tk===BTK)sp2.textContent="tidak diketahui (foto lama)"})}}}
 function bnav(d){const L=bList(),n=L[L.indexOf(ABM)+d];if(n!=null)showBig(n)}
 $("#bp").onclick=()=>bnav(-1);$("#bq").onclick=()=>bnav(1);
 addEventListener("keydown",e=>{if($("#big").style.display!=="flex")return;if(e.key==="ArrowLeft")bnav(-1);else if(e.key==="ArrowRight")bnav(1);else if(e.key==="Escape")closeBig()});
@@ -430,7 +436,7 @@ $("#bd").onclick=async()=>{if(!cur)return;const b=$("#bd"),ck=cur.split("_");if(
 $("#pm").value=now.getMonth();$("#pm").onchange=()=>{if(!PYM)$("#py").value=yearFor(+$("#pm").value);prog()};$("#ex2").onclick=()=>{$("#ex").onclick();$("#am3").textContent="Jika unduhan berhasil, file ada di folder Download. Kirim file itu ke admin."};
 let RM=false;
 $("#py").innerHTML="<option>"+now.getFullYear()+"</option>";$("#py").onchange=()=>{PYM=1;prog()};
-function rmode(v){RM=v;FLT="all";fcui();document.querySelector("#fc [data-f=u]").classList.toggle("hide",v);$("#rb").classList.toggle("p",!v);$("#rt").classList.toggle("p",v);["#pm","#lbm"].forEach(x=>$(x).classList.toggle("hide",v));prog()}
+function rmode(v){RM=v;$("#rb").classList.toggle("p",!v);$("#rt").classList.toggle("p",v);["#pm","#lbm"].forEach(x=>$(x).classList.toggle("hide",v));prog()}
 $("#rb").onclick=()=>rmode(false);$("#rt").onclick=()=>rmode(true);$("#py").onchange=prog;
 const isLocked=async(y,m)=>{const l=await get("_lock");return !!(l&&l[y+"_"+m])};
 async function lkui(m,y,all){const L=await isLocked(y,m),b=$("#lk"),i=$("#lks");i.className="info";b.classList.toggle("hide",role!=="admin");b.textContent=L?"Buka kunci "+B[m]+" "+y:"Kunci "+B[m]+" "+y;i.textContent=L?"🔒 "+B[m]+" "+y+" sudah dikunci. Catatan dan foto bulan ini tidak bisa diubah.":(all?"Semua konsumen sudah dicatat. Bulan ini bisa dikunci.":"")}
@@ -609,37 +615,28 @@ $("#pvs").onclick=async()=>{if(!PVW)return;const f=new File([PVW.blob],PVW.name,
  dlFile(f);toast("Fitur kirim tidak ada, file diunduh. Kirim lewat WhatsApp > klip > Dokumen.")};
 })();
 const pr=(i,t)=>({s:t.toLowerCase(),h:'<button class="pr" data-i="'+i+'">'+esc(t)+'</button>'});let FL={ok:[],u:[]},PYM=0,PGT=0;const PYR=()=>+$("#py").value;
-let SH={ok:10,u:10},LK={ok:[],u:[]},FLT="all";
-const MI=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-const prY=(i,t,cells,b)=>({s:t.toLowerCase(),b:b,h:'<button class="pr" data-i="'+i+'">'+esc(t)+'<span class="ym">'+cells.map((c,k)=>"<span><small>"+MI[k]+"</small>"+c+"</span>").join("")+"</span></button>"});
-function fcui(){document.querySelectorAll("#fc button").forEach(x=>x.classList.toggle("p",x.dataset.f===FLT))}
-$("#fc").onclick=e=>{const b=e.target.closest("button[data-f]");if(!b)return;FLT=b.dataset.f;SH.ok=SH.u=10;fcui();drawPu()};
+let SH={ok:10,u:10},LK={ok:[],u:[]};
 const mo=k=>{const r=FL[k].length-SH[k];let h='';if(r>0)h+='<button class="btn" data-more="'+k+'" style="margin:6px 0">▼ Lihat '+Math.min(20,r)+' lagi (sisa '+r+')</button>';if(SH[k]>10)h+='<button class="btn" data-less="'+k+'" style="margin:6px 0">▲ Perpendek</button>';return h?'<div class="row">'+h+'</div>':''};
-function drawPu(){const q=($("#ps").value||"").trim().toLowerCase(),f=a=>q?a.filter(x=>x.s.includes(q)):a;FL={ok:f(LK.ok),u:f(LK.u)};if(FLT==="u")FL.ok=[];else if(FLT==="b"){FL.ok=FL.ok.filter(x=>x.b);FL.u=[]}
+function drawPu(){const q=($("#ps").value||"").trim().toLowerCase(),f=a=>q?a.filter(x=>x.s.includes(q)):a;FL={ok:f(LK.ok),u:f(LK.u)};
  const sec=(k,t)=>FL[k].length?(t?"<b>"+t+" ("+FL[k].length+"):</b>":"")+FL[k].slice(0,RM?1e9:SH[k]).map(x=>x.h).join("")+(RM?"":mo(k)):"";
- $("#pu").innerHTML=(!FL.ok.length&&!FL.u.length)?(q?"Tidak ada nama yang cocok.":FLT!=="all"?"Tidak ada data untuk filter ini.":""):RM?sec("ok",""):sec("u","Belum dicatat")+(FL.u.length&&FL.ok.length?'<div class="sp"></div>':"")+sec("ok","Sudah dicatat")}
+ $("#pu").innerHTML=(!FL.ok.length&&!FL.u.length)?(q?"Tidak ada nama yang cocok.":""):RM?sec("ok",""):sec("u","Belum dicatat")+(FL.u.length&&FL.ok.length?'<div class="sp"></div>':"")+sec("ok","Sudah dicatat")}
 $("#ps").oninput=()=>{SH.ok=SH.u=10;drawPu()};
 function goAlbum(i){ay=+$("#py").value;$("#as").value="";afilter(1);$("#an").value=i;show("album")}
 $("#pu").onclick=e=>{const lb=e.target.closest("button[data-less]");if(lb){SH[lb.dataset.less]=10;drawPu();$("#pu").scrollIntoView();return}const mb=e.target.closest("button[data-more]");if(mb){SH[mb.dataset.more]+=20;drawPu();return}const b=e.target.closest("button[data-i]");if(b)goAlbum(+b.dataset.i)};
 async function rekap(){const y=+$("#py").value,L=await lall();let h=[],n=0,tot=0;
- const A=(no,yy,mm)=>{const r=L.get(key(no,yy,mm));return r&&typeof r==="object"?r.a:null};
- for(let i=0;i<N.length;i++){if(DEL.has(i+1))continue;tot++;const no=i+1;let c=0,bd=0,cells=[];
-  for(let m=0;m<12;m++){if(!L.has(key(no,y,m))){cells.push("⬜");continue}c++;
-   const a=A(no,y,m),pv=A(no,m===0?y-1:y,(m+11)%12),pa=pv!=null?pv:(CU.base&&CU.base[no]!=null?CU.base[no]:null);
-   let ic="✅";if(a!=null&&pa!=null){const us=a-pa;if(us<0)ic="❌";else if(us>MAXU)ic="⛔"}
-   if(ic!=="✅")bd++;cells.push(ic)}
-  if(c){n++;h.push(prY(i,no+". "+N[i]+" · "+c+"/12"+(bd?" · "+bd+" perlu dicek":""),cells,bd))}}
+ for(let i=0;i<N.length;i++){if(DEL.has(i+1))continue;tot++;let c=0,mk="";for(let m=0;m<12;m++){const o=L.has(key(i+1,y,m));if(o)c++;mk+=o?"✅":"⬜"}
+  if(c){n++;h.push(pr(i,(i+1)+". "+N[i]+" · "+c+"/12\n"+mk))}}
  bar(tot?n/tot:0);$("#pk").innerHTML="";
- $("#pt").textContent="Tahun "+y+": "+n+" dari "+tot+" konsumen sudah ada catatan. Tiap kotak = 1 bulan: ✅ normal, ❌ minus, ⛔ 500 m³ ke atas, ⬜ kosong.";LK.ok=h;LK.u=[];drawPu();$("#lk").classList.add("hide");$("#lks").textContent=""}
+ $("#pt").textContent="Tahun "+y+": "+n+" dari "+tot+" konsumen sudah ada catatan. Urutan ✅ = Jan sampai Des.";LK.ok=h;LK.u=[];drawPu();$("#lk").classList.add("hide");$("#lks").textContent=""}
 const bar=p=>{$("#pbi").style.width=Math.round(p*100)+"%"};
 async function pyfill(){const [lo,hi]=await yrs(),e=$("#py"),v=+e.value||now.getFullYear();if(e.options.length!==hi-lo+1||+e.options[0].value!==lo){e.innerHTML=Array.from({length:hi-lo+1},(_,k)=>"<option>"+(lo+k)+"</option>").join("")}e.value=Math.min(hi,Math.max(lo,v))}
 async function prog(){const tk=++PGT;$("#tv").innerHTML="";$("#kv").innerHTML="";await pyfill();if(tk!==PGT)return;if(RM)return rekap();const m=+$("#pm").value,y=PYR(),L=await lall();if(tk!==PGT)return;
  const g=(i,yy,mm)=>{const r=L.get(key(i+1,yy,mm));return r&&typeof r==="object"?r:null},pm=(m+11)%12,py=m===0?y-1:y;let d=0,u=[],ok=[],tot=0,tg=0,bad=0,act=0;
  for(let i=0;i<N.length;i++){if(DEL.has(i+1))continue;act++;const no=i+1,c=g(i,y,m);
   if(!c){u.push(pr(i,no+". "+N[i]));continue}
-  d++;const p=g(i,py,pm),pa=p?p.a:(CU.base[no]!=null?CU.base[no]:""),f=c.tr!=null?{t:c.tr,m:c.mn}:tf(no);let x=0,ic="✅";const us=pa===""?null:c.a-pa;
-  if(us!=null&&us<0){x=1;ic="❌"}else{if(us!=null&&us>MAXU){x=1;ic="⛔"}if(us==null||!f){if(!x){x=1;ic="⚠"}}else{tot+=us;tg+=c.tg!=null?c.tg:bil(no,us,f)}}
-  if(x)bad++;ok.push(Object.assign(pr(i,ic+" "+no+". "+N[i]+" · meter "+c.a),{b:x}))}
+  d++;const p=g(i,py,pm),pa=p?p.a:(CU.base[no]!=null?CU.base[no]:""),f=c.tr!=null?{t:c.tr,m:c.mn}:tf(no);let x=0;
+  if(pa===""||!f)x=1;else{const us=c.a-pa;if(us<0)x=1;else{tot+=us;tg+=c.tg!=null?c.tg:bil(no,us,f)}}
+  if(x)bad++;ok.push(pr(i,(x?"⚠ ":"✅ ")+no+". "+N[i]+" · meter "+c.a))}
  $("#pt").textContent="Sudah dicatat "+d+" dari "+act+" konsumen ("+B[m]+" "+y+")"+(d===act?". Semua selesai.":".");bar(act?d/act:0);
  $("#pk").innerHTML='<div>Pemakaian<b>'+tot+' m³</b></div><div>Tagihan<b>'+esc(rp(tg))+'</b></div><div class="'+(bad?"bd":"")+'">Perlu dicek<b>'+bad+'</b></div>';
  LK.ok=ok;LK.u=u;SH.ok=SH.u=10;drawPu();lkui(m,y,d===act)}
