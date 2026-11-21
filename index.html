@@ -572,13 +572,15 @@ async function pdfTable(){await libs();const T=await tbl(),[W,H]=pap();
  if(!T.hdr){const ln=ORI==="l",pw=ln?H:W,d=new jspdf.jsPDF(ln?"l":"p","mm",[W,H]),mx=8,tw=pw-2*mx;
   d.setFont("helvetica","bold");d.setFontSize(12);d.text(T.title,pw/2,12,{align:"center"});
   const nm=T.head.length-2,w10=(v,b)=>{d.setFont("helvetica",b?"bold":"normal");d.setFontSize(10);return d.getTextWidth(String(v))},
-   mxN=Math.max(1,...T.rows.map(r=>w10(r[1]))),mxV=Math.max(w10("00000"),...T.rows.map(r=>Math.max(0,...r.slice(2).map(v=>w10(v))))),mxH=Math.max(1,...T.head.slice(2).map(h=>w10(h,1))),
+   mxN=Math.max(1,...T.rows.map(r=>w10(r[1]))),mxV=Math.max(w10("00000"),...T.rows.map(r=>Math.max(0,...r.slice(2).map(v=>w10(v))))),AB={JANUARI:"JAN",FEBRUARI:"FEB",MARET:"MAR",APRIL:"APR",MEI:"MEI",JUNI:"JUN",JULI:"JUL",AGUSTUS:"AGU",SEPTEMBER:"SEP",OKTOBER:"OKT",NOVEMBER:"NOV",DESEMBER:"DES"},yr=+((String(T.title).match(/\d{4}/)||[0])[0]),hd2=T.head.map((h,i)=>i>1&&yr>2026?(AB[String(h).toUpperCase()]||h):h),mxH=Math.max(1,...hd2.slice(2).map(h=>w10(h,1))),
    nw0=mxN*.9+3,cw0=(tw-9-nw0)/nm,fs=Math.max(5,Math.min(9,(cw0-2)*10/mxV)),nw=mxN*fs/10+1+2,cw=(tw-9-nw)/nm,
    fh=Math.max(4.5,Math.min(8,(cw-2)*10/mxH)),
    cs2={0:{halign:"center",cellWidth:9},1:{halign:"left",cellWidth:nw}};
   for(let k=2;k<T.head.length;k++)cs2[k]={halign:"center",cellWidth:cw};
   d.setFont("helvetica","normal");
-  d.autoTable({startY:18,head:[T.head],body:T.rows,theme:"grid",styles:{fontSize:fs,cellPadding:{top:1.2,bottom:1.2,left:1,right:1},textColor:0,lineColor:0,lineWidth:.1,valign:"middle",overflow:"ellipsize"},headStyles:{fillColor:[221,221,221],textColor:0,halign:"center",fontSize:fh,overflow:"visible"},columnStyles:cs2,tableWidth:tw,margin:{left:mx,right:mx,top:10,bottom:10}});
+  d.autoTable({startY:18,head:[hd2],body:T.rows,theme:"grid",alternateRowStyles:{fillColor:[243,243,243]},styles:{fontSize:fs,cellPadding:{top:1.2,bottom:1.2,left:1,right:1},textColor:0,lineColor:0,lineWidth:.1,valign:"middle",overflow:"ellipsize"},headStyles:{fillColor:[221,221,221],textColor:0,halign:"center",fontSize:fh,overflow:"visible"},bodyStyles:{minCellHeight:7},columnStyles:cs2,tableWidth:tw,margin:{left:mx,right:mx,top:10,bottom:14},
+   didDrawCell:h=>{const q=["MARET","JUNI","SEPTEMBER"];if(h.column.index>1&&q.includes(String(T.head[h.column.index]).toUpperCase())&&(h.section==="head"||h.section==="body")){const c=h.cell;d.setDrawColor(0);d.setLineWidth(.5);d.line(c.x+c.width,c.y,c.x+c.width,c.y+c.height);d.setLineWidth(.1)}}});
+  const np=d.getNumberOfPages(),ph=ln?W:H;d.setFont("helvetica","normal");d.setFontSize(8);for(let i=1;i<=np;i++){d.setPage(i);d.text("Hal "+i+"/"+np,pw/2,ph-6,{align:"center"});d.text("Dicetak "+new Date().toLocaleDateString("id-ID"),pw-mx,ph-6,{align:"right"})}
   return[T.file+".pdf",d]}
  const d=new jspdf.jsPDF("p","mm",[W,H]),mg=(W-190)/2,R=T.rows;d.setFont("helvetica","bold");d.setFontSize(10);
  T.hdr.forEach((t,i)=>d.text(t,W/2,12+i*5,{align:"center"}));
