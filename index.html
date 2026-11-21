@@ -170,6 +170,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <details class="ex"><summary>Cetak, unduh &amp; kirim</summary>
   <div class="xg"><div class="xh">Pengaturan PDF</div>
    <div class="xs"><label for="xpp">Kertas</label><select id="xpp"></select></div>
+   <div class="xs hide" id="xorw"><label for="xor">Arah kertas</label><select id="xor"><option value="p">Portrait (tegak)</option><option value="l">Landscape (mendatar)</option></select></div>
    <label class="xk"><input type="checkbox" id="xsk">Lewati yang belum dicatat (khusus kartu)</label></div>
   <div class="xg"><div class="xh">Tabel tagihan</div>
    <div class="row"><button class="btn" id="xtv">Lihat PDF</button><button class="btn" id="xtd">Unduh PDF</button></div>
@@ -435,8 +436,9 @@ async function ldel(k){mem.delete(k);if(db){try{await rq(db.transaction("r","rea
 $("#bd").onclick=async()=>{if(!cur)return;const b=$("#bd"),ck=cur.split("_");if(await isLocked(+ck[1],+ck[2])){b.textContent="Bulan ini dikunci";setTimeout(()=>{b.textContent="🗑 Hapus foto ini"},2500);return}if(!b.dataset.arm){b.dataset.arm="1";b.textContent="Ketuk lagi untuk hapus";setTimeout(()=>{delete b.dataset.arm;b.textContent="🗑 Hapus foto ini"},4000);return}delete b.dataset.arm;b.textContent="🗑 Hapus foto ini";await del(cur);cur=null;closeBig();album()};
 $("#pm").value=now.getMonth();$("#pm").onchange=()=>{if(!PYM)$("#py").value=yearFor(+$("#pm").value);prog()};$("#ex2").onclick=()=>{$("#ex").onclick();$("#am3").textContent="Jika unduhan berhasil, file ada di folder Download. Kirim file itu ke admin."};
 let RM=false;
+let ORI=(()=>{try{return localStorage.getItem("tu_ori")==="p"?"p":"l"}catch(e){return"l"}})();
 $("#py").innerHTML="<option>"+now.getFullYear()+"</option>";$("#py").onchange=()=>{PYM=1;prog()};
-function rmode(v){RM=v;FLT="all";fcui();document.querySelector("#fc [data-f=u]").classList.toggle("hide",v);$("#rb").classList.toggle("p",!v);$("#rt").classList.toggle("p",v);["#pm","#lbm"].forEach(x=>$(x).classList.toggle("hide",v));prog()}
+function rmode(v){RM=v;FLT="all";fcui();document.querySelector("#fc [data-f=u]").classList.toggle("hide",v);$("#rb").classList.toggle("p",!v);$("#rt").classList.toggle("p",v);["#pm","#lbm"].forEach(x=>$(x).classList.toggle("hide",v));$("#xorw").classList.toggle("hide",!v);prog()}
 $("#rb").onclick=()=>rmode(false);$("#rt").onclick=()=>rmode(true);$("#py").onchange=prog;
 const isLocked=async(y,m)=>{const l=await get("_lock");return !!(l&&l[y+"_"+m])};
 async function lkui(m,y,all){const L=await isLocked(y,m),b=$("#lk"),i=$("#lks");i.className="info";b.classList.toggle("hide",role!=="admin");b.textContent=L?"Buka kunci "+B[m]+" "+y:"Kunci "+B[m]+" "+y;i.textContent=L?"🔒 "+B[m]+" "+y+" sudah dikunci. Catatan dan foto bulan ini tidak bisa diubah.":(all?"Semua konsumen sudah dicatat. Bulan ini bisa dikunci.":"")}
@@ -455,7 +457,7 @@ async function tbl(){const L=await lall(),act=[];N.forEach((t,i)=>{if(!DEL.has(i
   return{title:"Rekap Meter Air - "+B[m]+" "+y,hdr:["LEMBAR BACA METER",'AIR BERSIH "TIRTO UTOMO" - JUNREJO - RW.04',"TAGIHAN BULAN : "+(B[m]+" "+y).toUpperCase()],head:["NO","NAMA KONSUMEN","Meter Bulan lalu","Meter Bulan Ini","Jumlah Pemakaian","Beban","Total Tagihan","Total <10K = 10K","Ket","Dicatat"],rows,meta,foot:["","TOTAL","","",tot,"",tr2,tg,"",""],cut:2,money:[5,6,7],land:false,sum:"Dicatat "+done+" dari "+act.length+" konsumen · Total pemakaian "+tot+" m3 · Total tagihan "+rp(tg),file:"rekap-meter-"+y+"-"+String(m+1).padStart(2,"0")}}
  const y=+$("#py").value,m0=y===2026?5:0;let done=0;
  const rows=act.map(i=>{const r=[i+1,N[i]];let c=0;for(let m=m0;m<12;m++){const o=g(i,y,m);if(o)c++;r.push(o?o.a:"")}if(c)done++;return r});
- return{title:"REKAP METER AIR - TAHUN "+y,head:["NO","NAMA KONSUMEN",...B.slice(m0).map(x=>x.toUpperCase())],rows,land:true,eq:1,sum:done+" dari "+act.length+" konsumen punya catatan (angka meter per bulan)",file:"rekap-meter-"+y}}
+ return{title:"REKAP METER AIR - TAHUN "+y,head:["NO","NAMA KONSUMEN",...B.slice(m0).map(x=>x.toUpperCase())],rows,land:ORI==="l",eq:1,sum:done+" dari "+act.length+" konsumen punya catatan (angka meter per bulan)",file:"rekap-meter-"+y}}
 async function doPrint(){$("#exi").textContent="Menyiapkan tabel...";const T=await tbl(),fs=T.land?"7.5pt":"9pt",cut=T.cut||0,cl=r=>cut?r.slice(0,-cut):r,fm=(c,j)=>T.money&&T.money.includes(j)&&typeof c==="number"?rp(c):c,tr=(r,b,mt)=>'<tr style="'+(b?'font-weight:bold;':'')+(mt&&mt.red?'color:#c00;':'')+'">'+cl(r).map((c,j)=>'<td style="'+(typeof c==="number"?(T.eq?'text-align:center;':'text-align:right;'):'')+(mt&&mt.min&&j===7?'background:#d9d9d9;':'')+'">'+esc(fm(c,j))+'</td>').join("")+'</tr>';
  $("#prt").innerHTML=(T.hdr?'<div style="font:bold 12pt sans-serif;text-align:center;margin-bottom:6px">'+T.hdr.map(esc).join("<br>")+'</div>':'<h2 style="font:bold 14pt sans-serif;margin:0 0 2px">'+esc(T.title)+'</h2>')+'<div style="font:9pt sans-serif;margin-bottom:6px">'+esc(T.sum)+' · Dicetak '+esc(new Date().toLocaleString("id-ID"))+'</div><table style="font:'+fs+' sans-serif'+(T.eq?';table-layout:fixed':'')+'">'+(T.eq?'<colgroup><col style="width:5%"><col style="width:23%">'+T.head.slice(2).map(()=>'<col style="width:'+(72/(T.head.length-2)).toFixed(2)+'%">').join("")+'</colgroup>':"")+'<thead><tr>'+cl(T.head).map(x=>'<th'+(T.eq&&T.head.length>10?' style="font-size:6.5pt;padding:2px 1px"':'')+'>'+esc(x)+'</th>').join("")+'</tr></thead><tbody>'+T.rows.map((r,i)=>tr(r,0,T.meta&&T.meta[i])).join("")+(T.foot?tr(T.foot,1):"")+'</tbody></table>';
  let st=$("#pg");if(!st){st=document.createElement("style");st.id="pg";document.head.appendChild(st)}st.textContent="@page{size:A4 "+(T.land?"landscape":"portrait")+";margin:10mm}";
@@ -567,9 +569,16 @@ d.setFont('helvetica','bold');d.setFontSize(10);d.text(bln,cx,mid(2));d.text(r.n
 [[4,r.lalu],[5,r.ini],[6,r.pk],[8,r.fin==null?'':rpE(r.fin)]].forEach(([i,v])=>{d.setFont('helvetica','normal');d.setFontSize(10);d.text(':',cx,mid(i));d.setFont('helvetica',i===8?'bold':'normal');d.text(String(v??''),R,mid(i),{align:'right'})});
 d.setFont('helvetica','normal');d.setFontSize(8.5);d.text('UNTUK KOMPLAIN, LANGSUNG KE PAK TARI',x+(w[0]+w[1]+w[2])/2,mid(10),{align:'center'});d.setFont('helvetica','bold');d.setFontSize(10);d.text(String(r.i+1),R,mid(10),{align:'right'})}
 async function pdfTable(){await libs();const T=await tbl(),[W,H]=pap();
- if(!T.hdr){const d=new jspdf.jsPDF("l","mm",[W,H]);d.setFont("helvetica","bold");d.setFontSize(12);d.text(T.title,H/2,12,{align:"center"});
-  const nm=T.head.length-2,cw=(H-16-60)/nm,cs2={0:{halign:"center",cellWidth:10},1:{halign:"left",cellWidth:50}};for(let k=2;k<T.head.length;k++)cs2[k]={halign:"center",cellWidth:cw};
-  d.autoTable({startY:18,head:[T.head],body:T.rows,theme:"grid",styles:{fontSize:7.5,cellPadding:1,textColor:0,lineColor:0,lineWidth:.1,minCellHeight:5,valign:"middle",overflow:"ellipsize"},headStyles:{fillColor:[221,221,221],textColor:0,halign:"center",fontSize:nm>8?6.5:7.5,overflow:"visible"},columnStyles:cs2,tableWidth:H-16,margin:{left:8,right:8,top:10,bottom:10}});
+ if(!T.hdr){const ln=ORI==="l",pw=ln?H:W,d=new jspdf.jsPDF(ln?"l":"p","mm",[W,H]),mx=8,tw=pw-2*mx;
+  d.setFont("helvetica","bold");d.setFontSize(12);d.text(T.title,pw/2,12,{align:"center"});
+  const nm=T.head.length-2,w10=(v,b)=>{d.setFont("helvetica",b?"bold":"normal");d.setFontSize(10);return d.getTextWidth(String(v))},
+   mxN=Math.max(1,...T.rows.map(r=>w10(r[1]))),mxV=Math.max(w10("00000"),...T.rows.map(r=>Math.max(0,...r.slice(2).map(v=>w10(v))))),mxH=Math.max(1,...T.head.slice(2).map(h=>w10(h,1))),
+   nw=Math.min(Math.max(mxN*.9+3,tw*.2),tw*.34),cw=(tw-9-nw)/nm,
+   fs=Math.max(5,Math.min(9,(nw-2)*10/mxN,(cw-2)*10/mxV)),fh=Math.max(4.5,Math.min(8,(cw-2)*10/mxH)),
+   cs2={0:{halign:"center",cellWidth:9},1:{halign:"left",cellWidth:nw}};
+  for(let k=2;k<T.head.length;k++)cs2[k]={halign:"center",cellWidth:cw};
+  d.setFont("helvetica","normal");
+  d.autoTable({startY:18,head:[T.head],body:T.rows,theme:"grid",styles:{fontSize:fs,cellPadding:{top:1.2,bottom:1.2,left:1,right:1},textColor:0,lineColor:0,lineWidth:.1,valign:"middle",overflow:"ellipsize"},headStyles:{fillColor:[221,221,221],textColor:0,halign:"center",fontSize:fh,overflow:"visible"},columnStyles:cs2,tableWidth:tw,margin:{left:mx,right:mx,top:10,bottom:10}});
   return[T.file+".pdf",d]}
  const d=new jspdf.jsPDF("p","mm",[W,H]),mg=(W-190)/2,R=T.rows;d.setFont("helvetica","bold");d.setFontSize(10);
  T.hdr.forEach((t,i)=>d.text(t,W/2,12+i*5,{align:"center"}));
@@ -606,6 +615,7 @@ async function pvOpen(build){const bd=$("#pvb"),ex=$("#exi");ex.textContent="";$
 async function dlPdf(build){const ex=$("#exi");ex.textContent="Menyiapkan PDF...";try{const[n,d]=await build();dlFile(new File([d.output("blob")],n,{type:"application/pdf"}));ex.textContent=n+" diunduh."}catch(e){ex.textContent=emsg(e)}}
 const sel=$("#xpp");sel.innerHTML=Object.keys(PS).map(k=>'<option value="'+k+'">'+PS[k][2]+'</option>').join("");sel.value=PAPER;
 sel.onchange=()=>{PAPER=PS[sel.value]?sel.value:"a4";try{localStorage.setItem("tu_paper",PAPER)}catch(e){}};
+const so=$("#xor");so.value=ORI;so.onchange=()=>{ORI=so.value==="p"?"p":"l";try{localStorage.setItem("tu_ori",ORI)}catch(e){}};
 $("#xtv").onclick=()=>pvOpen(pdfTable);$("#xkv").onclick=()=>pvOpen(pdfCards);
 $("#xtd").onclick=()=>dlPdf(pdfTable);$("#xkd").onclick=()=>dlPdf(pdfCards);
 $("#pvc").onclick=()=>{if(history.state&&history.state.pv)history.back();else pvHide()};
