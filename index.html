@@ -193,6 +193,9 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <label>PIN rekap baru</label><input id="prk" type="password" inputmode="numeric" placeholder="Kosongkan jika tidak diubah (belum diisi = rekap memakai PIN admin)">
   <div class="sp"></div><button class="btn p" id="sp" style="width:100%">Simpan PIN</button>
   <p class="info" id="pi"></p>
+  <label>Batas pemakaian per bulan (m³)</label>
+  <div class="row"><input id="mx" type="number" inputmode="numeric" min="50" max="5000" placeholder="Contoh: 300"><button class="btn p" id="mxs" style="flex:0 0 96px">Simpan</button></div>
+  <p class="info" id="mxi">Pemakaian di atas angka ini tidak bisa disimpan petugas (dianggap salah input). Berlaku di semua HP.</p>
   <label>Kelola konsumen</label>
   <input id="xs" type="search" placeholder="Cari nama atau nomor" autocomplete="off">
   <div style="height:8px"></div>
@@ -221,7 +224,7 @@ const N="P. LESTARI|SUBENU|INDOMARET|WANDI|MULIYADI|ENDANG ARIF|NONO|ALFAMART|MA
 const BASE=N.length,N0=N.slice();const B=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const $=s=>document.querySelector(s),now=new Date();
 const ls={g(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},s(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-let db=null,mem=new Map(),role=null,photo=null,cur=null,ay=now.getFullYear();
+let db=null,mem=new Map(),role=null,photo=null,cur=null,ay=now.getFullYear(),MAXU=300;
 try{const r=indexedDB.open("meter-air",1);r.onupgradeneeded=()=>r.result.createObjectStore("r");r.onsuccess=()=>{db=r.result;loadExtra();sync(true)};}catch(e){setTimeout(()=>sync(true),300)}
 const rq=q=>new Promise((a,b)=>{q.onsuccess=()=>a(q.result);q.onerror=()=>b(q.error)});
 async function get(k){if(db){try{return await rq(db.transaction("r").objectStore("r").get(k))}catch(e){}}return mem.get(k)}
@@ -276,7 +279,7 @@ async function rdel(k){await gs("del",{key:k})}
 async function lall(){const m=new Map();if(db){try{const s=db.transaction("r").objectStore("r"),[k,v]=await Promise.all([rq(s.getAllKeys()),rq(s.getAll())]);k.forEach((x,i)=>m.set(x,v[i]))}catch(e){}}else mem.forEach((v,k)=>m.set(k,v));return m}
 const fmtT=iso=>{const d=new Date(iso);if(isNaN(d))return"";const t=d.toTimeString().slice(0,5),a=new Date(),dd=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()),g=Math.round((dd(a)-dd(d))/864e5);return g===0?"hari ini "+t:g===1?"kemarin "+t:d.getDate()+" "+B[d.getMonth()].slice(0,3)+" "+t};
 let ERR={},SYTOP="";
-const lbl=k=>{const q=String(k).split("_");if(q.length===3&&/^\d+$/.test(q[0])&&B[+q[2]])return(N[+q[0]-1]||"No "+q[0])+" · "+B[+q[2]]+" "+q[1];return({_cust:"Perubahan data konsumen",_lock:"Kunci bulan",_pin:"PIN"})[k]||k};
+const lbl=k=>{const q=String(k).split("_");if(q.length===3&&/^\d+$/.test(q[0])&&B[+q[2]])return(N[+q[0]-1]||"No "+q[0])+" · "+B[+q[2]]+" "+q[1];return({_cust:"Perubahan data konsumen",_lock:"Kunci bulan",_cfg:"Batas pemakaian",_pin:"PIN"})[k]||k};
 const st=(t,k)=>{const e=$("#sy");if(!e)return;{const z=qSyx(t,k);t=z[0];k=z[1]}e.className="info sy "+(k||"run");e.innerHTML='<i class="sd"></i><span class="st"><span class="t"></span></span>';e.querySelector(".t").textContent=t;const lo=ls.g("lastok","");if(k!=="ok"&&k!=="run"&&lo){const s=document.createElement("small");s.className="sl";s.textContent="Terakhir berhasil: "+fmtT(lo);e.querySelector(".st").appendChild(s)}SYTOP=t;syd()};
 function syd(){const b=$("#syb"),pn=$("#syp");if(!b||!pn)return;const dk=jl("dirty"),dl=jl("pdel"),n=dk.length+dl.length;b.classList.toggle("hide",!n);if(!n){pn.classList.add("hide");pn.innerHTML="";return}b.textContent="Detail ("+n+")";if(pn.classList.contains("hide"))return;pn.innerHTML="";const h=document.createElement("h4");h.textContent=n+" data belum terkirim";pn.appendChild(h);const ul=document.createElement("ul"),rows=[...dl.map(k=>[k,"d"]),...dk.map(k=>[k,ERR[k]?"x":"p"])];rows.slice(0,30).forEach(([k,c])=>{const li=document.createElement("li");li.className=c;const i=document.createElement("i"),d=document.createElement("div"),sm=document.createElement("small");d.textContent=lbl(k);sm.textContent=c==="d"?"Hapus menunggu dikirim":c==="x"?"Gagal: "+ERR[k]:"Menunggu dikirim";d.appendChild(sm);li.append(i,d);ul.appendChild(li)});pn.appendChild(ul);if(rows.length>30){const m=document.createElement("div");m.className="mo";m.textContent="+"+(rows.length-30)+" lainnya";pn.appendChild(m)}}
 {const lo=ls.g("lastok","");if(lo)st("Terakhir tersinkron "+fmtT(lo),"run")}
@@ -343,7 +346,7 @@ $("#rkb").onclick=async()=>{const v=$("#rkp").value,e=$("#rke");
   e.textContent="";$("#rkp").value="";ls.s("rekap_ok",String(Date.now()));location.href=REKAP_URL};
 $("#rkp").onkeydown=ev=>{if(ev.key==="Enter")$("#rkb").click()};
 $("#out").onclick=()=>{try{localStorage.removeItem("sesi")}catch(e){}role=null;$("#ed").checked=false;$("#edw").classList.add("hide");$("#nof").checked=false;$("#nofw").classList.add("hide");$("#pc").classList.remove("hide");$("#big").style.display="none";$("#app").classList.add("hide");$("#login").classList.remove("hide");show("catat",1)};
-let CV="catat";function show(v,np){if(!np&&v!==CV){try{history.pushState({v:v},"")}catch(e){}}CV=v;if(v==="catat")rebuild();if(v==="admin")setTimeout(devRender,0);["catat","album","prog","admin"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));if(v==="album")album();if(v==="prog")prog();if(v==="admin")count()}
+let CV="catat";function show(v,np){if(!np&&v!==CV){try{history.pushState({v:v},"")}catch(e){}}CV=v;if(v==="catat")rebuild();if(v==="admin"){setTimeout(devRender,0);$("#mx").value=MAXU}["catat","album","prog","admin"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));if(v==="album")album();if(v==="prog")prog();if(v==="admin")count()}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 async function info(){const i=$("#nm").value;$("#no").value=i===""?"":+i+1;const el=$("#inf"),mh=$("#mh");el.className="info";mh.textContent="";
  if(i===""){el.textContent="";return}
@@ -697,7 +700,7 @@ async function rekap(){const y=+$("#py").value,L=await lall();let h=[],n=0,tot=0
    if(ic!=="✅")bd++;cells.push(ic)}
   if(c){n++;h.push(prY(i,no+". "+N[i]+" · "+c+"/12"+(bd?" · "+bd+" perlu dicek":""),cells,bd))}}
  bar(tot?n/tot:0);$("#pk").innerHTML="";
- $("#pt").textContent="Tahun "+y+": "+n+" dari "+tot+" konsumen sudah ada catatan. Tiap kotak = 1 bulan: ✅ normal, ❌ minus, ⛔ 500 m³ ke atas, ⬜ kosong.";LK.ok=h;LK.u=[];drawPu();$("#lk").classList.add("hide");$("#lks").textContent=""}
+ $("#pt").textContent="Tahun "+y+": "+n+" dari "+tot+" konsumen sudah ada catatan. Tiap kotak = 1 bulan: ✅ normal, ❌ minus, ⛔ di atas "+MAXU+" m³, ⬜ kosong.";LK.ok=h;LK.u=[];drawPu();$("#lk").classList.add("hide");$("#lks").textContent=""}
 const bar=p=>{$("#pbi").style.width=Math.round(p*100)+"%"};
 async function pyfill(){const [lo,hi]=await yrs(),e=$("#py"),v=+e.value||now.getFullYear();if(e.options.length!==hi-lo+1||+e.options[0].value!==lo){e.innerHTML=Array.from({length:hi-lo+1},(_,k)=>"<option>"+(lo+k)+"</option>").join("")}e.value=Math.min(hi,Math.max(lo,v))}
 async function prog(){const tk=++PGT;$("#tv").innerHTML="";$("#kv").innerHTML="";await pyfill();if(tk!==PGT)return;if(RM)return rekap();const m=+$("#pm").value,y=PYR(),L=await lall();if(tk!==PGT)return;
@@ -721,13 +724,17 @@ function afilter(na){const q=$("#as").value.trim().toLowerCase(),sel=$("#an").va
  N.forEach((t,i)=>{if(DEL.has(i+1))return;const l=(i+1)+". "+t;if(q&&!l.toLowerCase().includes(q))return;n++;last=i;h+='<option value="'+i+'">'+l+'</option>'});
  $("#an").innerHTML=h;if(sel!==""&&$("#an").querySelector('option[value="'+sel+'"]'))$("#an").value=sel;else if(q&&n===1)$("#an").value=last;if(na!==1)album()}
 let DEL=new Set(),CU={ren:{},del:[],ext:[],tar:{},base:{}};
-const TR="5715515177211125222222522555522552222252225522521511571251525152222521222252222512251725522222552522122-525555222572-2252552722222525252222225222222252222252222222525522552222252225111255111111515",MN="0050050500050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000-000000000000-0000000000000000000000000000000000000000000000000000000000000000000000000000000",UNC=new Set([6,17,75,95,102,148,124,191,104,117]),BEBAN=5000,MAXU=499,TV={2:250,5:500,7:750,1:1000};
+const TR="5715515177211125222222522555522552222252225522521511571251525152222521222252222512251725522222552522122-525555222572-2252552722222525252222225222222252222252222222525522552222252225111255111111515",MN="0050050500050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000-000000000000-0000000000000000000000000000000000000000000000000000000000000000000000000000000",UNC=new Set([6,17,75,95,102,148,124,191,104,117]),BEBAN=5000,TV={2:250,5:500,7:750,1:1000};
 const rp=n=>"Rp"+Number(n).toLocaleString("id-ID");
 function tf(no){const o=CU.tar&&CU.tar[no];if(o)return{t:o[0],m:o[1]};const c=TR[no-1];if(!c||c==="-")return null;return{t:TV[c],m:MN[no-1]==="5"?50000:10000}}
 function bil(no,use,f){f=f||tf(no);if(!f||use==null||isNaN(use))return null;return Math.max(BEBAN+use*f.t,f.m)}
 async function prevR(no,y,m){const p=await get(key(no,m===0?y-1:y,(m+11)%12));if(p&&typeof p==="object")return p.a;const b=CU.base&&CU.base[no];return b!=null?b:null}
 const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-async function loadExtra(){let c=await get("_cust");if(!c){const e=await get("_extra");c={ren:{},del:[],ext:e||[]}}CU=c;c.tar=c.tar||{};c.base=c.base||{};
+$("#mxs").onclick=async()=>{const i=$("#mxi");if(role!=="admin")return;const n=Math.round(+$("#mx").value);
+ if(!$("#mx").value||isNaN(n)||n<50||n>5000){i.className="info err";i.textContent="Isi angka antara 50 dan 5000.";return}
+ await put("_cfg",{maxu:n,at:new Date().toISOString()});MAXU=n;i.className="info ok";i.textContent="Tersimpan: batas "+n+" m³ per bulan (sekitar "+Math.round(n*1000/30).toLocaleString("id-ID")+" liter per hari). Berlaku di semua HP setelah sinkron."};
+async function loadMaxu(){try{const c=await get("_cfg");if(c&&typeof c==="object"){const n=Math.round(+c.maxu);if(n>=50&&n<=5000)MAXU=n}}catch(e){}}
+async function loadExtra(){await loadMaxu();let c=await get("_cust");if(!c){const e=await get("_extra");c={ren:{},del:[],ext:e||[]}}CU=c;c.tar=c.tar||{};c.base=c.base||{};
  N.length=0;N0.forEach(x=>N.push(x));c.ext.forEach(x=>N.push(x));Object.keys(c.ren).forEach(k=>{if(N[k-1]!==undefined)N[k-1]=c.ren[k]});DEL=new Set(c.del);
  rebuild();afilter();renderCust()}
 async function saveCust(){await put("_cust",CU);await loadExtra()}
