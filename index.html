@@ -561,13 +561,30 @@ const rpE=n=>n==null||n===""?"":"Rp"+Number(n).toLocaleString("en-US");
 const ld=u=>new Promise((y,n)=>{const s=document.createElement("script");s.src=u;s.onload=y;s.onerror=()=>n(new Error("gagal memuat pustaka"));document.head.appendChild(s)});
 let LIB=null;const libs=()=>LIB||(LIB=(async()=>{if(!window.jspdf)await ld("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");if(!jspdf.jsPDF.API.autoTable)await ld("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js")})().catch(e=>{LIB=null;throw e}));
 const emsg=e=>/pustaka|load|network/i.test((e&&e.message)||"")?"PDF butuh internet untuk memuat pustaka. Coba lagi saat online.":((e&&e.message)||"Gagal membuat PDF");
-function card(d,bln,x,y,w,r){const W=SM(w),ry=i=>y+SM(RH.slice(0,i)),mid=i=>ry(i)+RH[i]/2+1.2,R=x+W-1.2;d.setDrawColor(0);d.setLineWidth(.5);d.rect(x,y,W,CH);d.line(x,ry(2),x+W,ry(2));
-d.setFont('helvetica','bold');d.setFontSize(10);d.text('AIR BERSIH "TIRTO UTOMO" RW 04 - JUNREJO',x+W/2,y+(RH[0]+RH[1])/2+1.3,{align:'center'});
-const lb=(i,s)=>{d.setFont('helvetica','normal');d.setFontSize(9);d.text(s,x+1.2,mid(i))},cx=x+w[0]+.8;
-lb(2,'Bulan Tagihan');lb(3,'Nama Konsumen');lb(4,'Jml Meter Bulan Lalu');lb(5,'Jml Meter Bulan Ini');lb(6,'Jml Meter');lb(8,'Total Tagihan');
-d.setFont('helvetica','bold');d.setFontSize(10);d.text(bln,cx,mid(2));d.text(r.n,cx,mid(3));
-[[4,r.lalu],[5,r.ini],[6,r.pk],[8,r.fin==null?'':rpE(r.fin)]].forEach(([i,v])=>{d.setFont('helvetica','normal');d.setFontSize(10);d.text(':',cx,mid(i));d.setFont('helvetica',i===8?'bold':'normal');d.text(String(v??''),R,mid(i),{align:'right'})});
-d.setFont('helvetica','normal');d.setFontSize(8.5);d.text('UNTUK KOMPLAIN, LANGSUNG KE PAK TARI',x+(w[0]+w[1]+w[2])/2,mid(10),{align:'center'});d.setFont('helvetica','bold');d.setFontSize(10);d.text(String(r.i+1),R,mid(10),{align:'right'})}
+function cuts(d,xo,rw,cnt){const lc=Math.min(cnt,rw),rc=Math.max(0,cnt-rw),xm=xo+SM(CWL)+GAP/2,xe=xo+2*SM(CWL)+GAP+3;
+d.setDrawColor(110,110,110);d.setLineWidth(.2);d.setLineDashPattern([1.6,1.6],0);
+if(rc>0)d.line(xm,6,xm,6+lc*CH);
+for(let i=1;i<lc;i++)d.line(xo-3,6+i*CH,xm,6+i*CH);
+for(let i=1;i<rc;i++)d.line(xm,6+i*CH,xe,6+i*CH);
+d.setLineDashPattern([],0);d.setDrawColor(0,0,0)}
+function card(d,bln,x,y0,w,r){const W=SM(w),H=CH-2.4,y=y0+1.2,BK=[0,0,0],GY=[55,55,55],
+ t=(s,px,py,sz,b,c,al)=>{d.setFont('helvetica',b?'bold':'normal');d.setFontSize(sz);d.setTextColor(c[0],c[1],c[2]);d.text(String(s),px,py,{align:al||'left'})},
+ fit=(s,mw,sz,b)=>{d.setFont('helvetica',b?'bold':'normal');d.setFontSize(sz);while(sz>6&&d.getTextWidth(s)>mw){sz-=.5;d.setFontSize(sz)}return sz};
+d.setDrawColor(0,0,0);d.setFillColor(25,25,25);d.roundedRect(x,y,W,10.5,2.2,2.2,'F');d.rect(x,y+5,W,5.5,'F');d.setFillColor(255,255,255);
+d.circle(x+6,y+6.1,2.1,'F');d.triangle(x+6,y+1.8,x+4.05,y+5.3,x+7.95,y+5.3,'F');
+t('AIR BERSIH "TIRTO UTOMO"',x+11,y+5.1,9.5,1,[255,255,255]);t('RW 04 - JUNREJO',x+11,y+8.6,7,0,[215,215,215]);
+d.roundedRect(x+W-14,y+2.3,11,5.9,2.9,2.9,'F');t(r.i+1,x+W-8.5,y+6.4,9.5,1,BK,'center');d.setFillColor(0,0,0);
+t('Bulan Tagihan',x+4,y+14.4,7.5,0,GY);t(bln,x+W-4,y+14.5,10,1,BK,'right');
+d.setLineWidth(.2);d.line(x+3,y+17,x+W-3,y+17);
+const nm=String(r.n==null?'':r.n);t('Nama Konsumen',x+4,y+20.4,6.5,0,GY);t(nm,x+4,y+26.4,fit(nm,W-8,12.5,1),1,BK);
+const bw=(W-12)/3,LBL=['Meter Bulan Lalu','Meter Bulan Ini','Jml Meter'],VAL=[r.lalu,r.ini,r.pk];
+VAL.forEach((v,k)=>{const bx=x+4+k*(bw+2);d.setLineWidth(k===2?.7:.3);d.roundedRect(bx,y+29.3,bw,11,1.5,1.5,'S');
+ t(LBL[k],bx+bw/2,y+32.9,6,0,GY,'center');t(v==null||v===''?'-':v,bx+bw/2,y+38.4,11,1,BK,'center')});
+d.setLineWidth(.7);d.roundedRect(x+4,y+42,W-8,7.8,1.6,1.6,'S');
+t('Total Tagihan',x+7,y+47.5,8.5,1,BK);t(r.fin==null?'-':rpE(r.fin),x+W-7,y+47.8,13,1,BK,'right');
+t('UNTUK KOMPLAIN, LANGSUNG KE PAK TARI',x+W/2,y+H-1.4,6,0,GY,'center');
+d.setLineWidth(.5);d.roundedRect(x,y,W,H,2.2,2.2,'S');
+d.setTextColor(0,0,0)}
 async function pdfTable(){await libs();const T=await tbl(),[W,H]=pap();
  if(!T.hdr){const ln=ORI==="l",pw=ln?H:W,d=new jspdf.jsPDF(ln?"l":"p","mm",[W,H]),mx=8,tw=pw-2*mx;
   d.setFont("helvetica","bold");d.setFontSize(12);d.text(T.title,pw/2,12,{align:"center"});
@@ -601,8 +618,8 @@ async function cardList(){const m=+$("#pm").value,y=PYR(),pm=(m+11)%12,py=m===0?
   out.push({i,n:t,lalu:pa,ini:c?c.a:null,pk:u,fin:b,ok})});return out}
 async function pdfCards(){if(RM)throw new Error("Pilih Per bulan dulu untuk membuat kartu.");await libs();
  let L=await cardList();if($("#xsk").checked)L=L.filter(x=>x.ok);
- const m=+$("#pm").value,y=PYR(),bln=B[m]+" "+y,[W,H]=pap(),rw=cRows(),n=rw*2,xo=(W-210)/2,d=new jspdf.jsPDF("p","mm",[W,H]);
- L.forEach((r,j)=>{const k=j%n,rc=k>=rw;if(!k&&j)d.addPage();card(d,bln,5+xo+(rc?SM(CWL)+GAP:0),6+(k%rw)*CH,rc?CWR:CWL,r)});
+ const m=+$("#pm").value,y=PYR(),bln=B[m]+" "+y,[W,H]=pap(),rw=cRows(),n=rw*2,xo=(W-(2*SM(CWL)+GAP))/2,d=new jspdf.jsPDF("p","mm",[W,H]);
+ L.forEach((r,j)=>{const k=j%n,rc=k>=rw;if(!k){if(j)d.addPage();cuts(d,xo,rw,Math.min(n,L.length-j))}card(d,bln,xo+(rc?SM(CWL)+GAP:0),6+(k%rw)*CH,CWL,r)});
  if(!L.length)d.text("Belum ada data",20,20);return["kartu-"+(B[m]+"-"+y).toLowerCase()+".pdf",d]}
 let PVW=null;
 function pvHide(){$("#pvw").classList.add("hide");$("#pvb").innerHTML="";PVW=null}
