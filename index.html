@@ -200,6 +200,9 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <p class="info" id="xsum" style="font-weight:600;color:var(--ink)"></p>
   <button class="btn" id="xv" style="width:100%;margin:0 0 8px">Tampilkan yang sudah dihapus</button>
   <div id="xt" style="max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
+  <label>Perangkat yang memakai aplikasi</label>
+  <p class="info" id="dvs"></p>
+  <div id="dvl" style="max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
   <label>Cadangan data</label>
   <div class="row"><button class="btn" id="ex">Unduh cadangan</button><label class="btn" style="margin:0;text-align:center">Pulihkan<input id="im" type="file" accept=".json,.txt,application/json,text/plain" class="hide"></label></div>
   <p class="info" id="am2"></p>
@@ -306,7 +309,7 @@ async function sync(full){if(busy){again=true;return}if(qBlk()){st("","off");ret
 $("#qshow").onclick=()=>qModal();
 $("#sy").onclick=()=>{if(qBlk()||(qg().ms&&qPct()>=QW*100))qModal();else sync(true)};
 window.addEventListener("online",()=>sync());
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&role)sync()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&role){sync();devPing(role)}});
 setInterval(()=>{if(role&&!document.hidden&&Date.now()-lastSy>=pollIv()-500)sync()},5000);
 const key=(n,y,m)=>n+"_"+y+"_"+m;
 const yearFor=m=>Math.max(2026,m>now.getMonth()+1?now.getFullYear()-1:now.getFullYear());
@@ -314,7 +317,7 @@ const opts=(el,list,ph)=>{el.innerHTML=(ph?'<option value="">'+ph+'</option>':''
 const NN=N.map((t,i)=>(i+1)+". "+t);opts($("#nm"),NN,"Pilih nama konsumen");opts($("#an"),NN,"Pilih nama konsumen");opts($("#bl"),B);opts($("#pm"),B);
 $("#bl").value=now.getMonth();
 $("#tg").value=String(now.getDate()).padStart(2,"0")+"/"+String(now.getMonth()+1).padStart(2,"0")+"/"+now.getFullYear();
-function enter(r){role=r;sync();$("#login").classList.add("hide");$("#app").classList.remove("hide");$("#na").classList.toggle("hide",r!=="admin");$("#nofw").classList.toggle("hide",r!=="admin");$("#edw").classList.toggle("hide",r!=="admin");$("#ed").checked=false;$("#nof").checked=false;$("#pc").classList.remove("hide");rebuild();$("#lp").value="";$("#le").textContent=""}
+function enter(r){role=r;sync();devPing(r);$("#login").classList.add("hide");$("#app").classList.remove("hide");$("#na").classList.toggle("hide",r!=="admin");$("#nofw").classList.toggle("hide",r!=="admin");$("#edw").classList.toggle("hide",r!=="admin");$("#ed").checked=false;$("#nof").checked=false;$("#pc").classList.remove("hide");rebuild();$("#lp").value="";$("#le").textContent=""}
 const hx=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
 async function hp(pin,salt){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return hx(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:new TextEncoder().encode(salt),iterations:100000},k,256))}
 async function mkpin(pin){const s=hx(crypto.getRandomValues(new Uint8Array(8)));return{s,h:await hp(pin,s)}}
@@ -339,7 +342,7 @@ $("#rkb").onclick=async()=>{const v=$("#rkp").value,e=$("#rke");
   e.textContent="";$("#rkp").value="";ls.s("rekap_ok",String(Date.now()));location.href=REKAP_URL};
 $("#rkp").onkeydown=ev=>{if(ev.key==="Enter")$("#rkb").click()};
 $("#out").onclick=()=>{try{localStorage.removeItem("sesi")}catch(e){}role=null;$("#ed").checked=false;$("#edw").classList.add("hide");$("#nof").checked=false;$("#nofw").classList.add("hide");$("#pc").classList.remove("hide");$("#big").style.display="none";$("#app").classList.add("hide");$("#login").classList.remove("hide");show("catat",1)};
-let CV="catat";function show(v,np){if(!np&&v!==CV){try{history.pushState({v:v},"")}catch(e){}}CV=v;if(v==="catat")rebuild();["catat","album","prog","admin"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));if(v==="album")album();if(v==="prog")prog();if(v==="admin")count()}
+let CV="catat";function show(v,np){if(!np&&v!==CV){try{history.pushState({v:v},"")}catch(e){}}CV=v;if(v==="catat")rebuild();if(v==="admin")setTimeout(devRender,0);["catat","album","prog","admin"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));if(v==="album")album();if(v==="prog")prog();if(v==="admin")count()}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 async function info(){const i=$("#nm").value;$("#no").value=i===""?"":+i+1;const el=$("#inf"),mh=$("#mh");el.className="info";mh.textContent="";
  if(i===""){el.textContent="";return}
@@ -766,5 +769,24 @@ function tick(){const d=new Date(),p=n=>String(n).padStart(2,"0");$("#ck b").tex
 tick();setInterval(tick,1000);
 try{history.replaceState({v:"catat"},"")}catch(e){}
 addEventListener("popstate",e=>{if(window.pvBack&&pvBack())return;const b=$("#big");if(b.style.display==="flex"){b.style.display="none";return}if(!role)return;const t=e.state;show(t&&t.v?t.v:"catat",1)});
+function devId(){let i=ls.g("devid","");if(!i){i=Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);ls.s("devid",i)}return i}
+async function devInfo(){let m="",pv="";try{const u=navigator.userAgentData;if(u&&u.getHighEntropyValues){const h=await u.getHighEntropyValues(["model","platformVersion"]);m=h.model||"";pv=String(h.platformVersion||"").split(".")[0]}}catch(e){}
+ const ua=navigator.userAgent||"",br=navigator.brave?"Brave":/SamsungBrowser/.test(ua)?"Samsung Internet":/Edg\//.test(ua)?"Edge":/OPR\//.test(ua)?"Opera":/Firefox/.test(ua)?"Firefox":/Chrome/.test(ua)?"Chrome":"Browser",av=pv||((ua.match(/Android (\d+)/)||[])[1]||"");
+ return{m:m,b:br,o:/Android/.test(ua)?"Android"+(av?" "+av:""):/iPhone|iPad/.test(ua)?"iOS":/Windows/.test(ua)?"Windows":ua.indexOf("Mac")>=0?"Mac":"",s:screen.width+"×"+screen.height}}
+async function devPing(r){try{if(!r)return;const k="_dev_"+devId(),o=(await get(k))||{},t=new Date().toISOString(),nw=!o.l||Date.now()-new Date(o.l)>3e5;if(!nw)return;
+ const op=(o.op||[]).slice();op.push(t);while(op.length>20)op.shift();
+ await put(k,Object.assign({},o,await devInfo(),{r:r,f:o.f||t,l:t,n:(o.n||0)+1,op:op}))}catch(e){}}
+function devT(i){const d=new Date(i);return isNaN(d)?"-":d.toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).replace(/\./g,":")}
+function devAgo(i){const m=Math.round((Date.now()-new Date(i))/6e4);return m<1?"baru saja":m<60?m+" menit lalu":m<1440?Math.floor(m/60)+" jam lalu":Math.floor(m/1440)+" hari lalu"}
+async function devRender(){const box=$("#dvl");if(!box)return;const L=await lall(),nm=L.get("_devnames")||{},me="_dev_"+ls.g("devid",""),a=[];
+ L.forEach((v,k)=>{if(k.startsWith("_dev_")&&v&&typeof v==="object"&&v.l)a.push([k,v])});a.sort((x,y)=>String(y[1].l).localeCompare(String(x[1].l)));
+ $("#dvs").textContent=a.length?a.length+' perangkat tercatat. "Dibuka" dihitung tiap masuk atau kembali ke aplikasi setelah lebih dari 5 menit. Ketuk "Nama" untuk memberi nama HP.':"Belum ada perangkat yang tercatat.";
+ box.innerHTML=a.map(([k,v])=>{const on=Date.now()-new Date(v.l)<6e5,d=[v.m,v.b,v.o,v.s].filter(Boolean).join(" · "),h=(v.op||[]).slice().reverse().map(x=>"<div>"+esc(devT(x))+"</div>").join("");
+  return '<div style="padding:10px 12px;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>'+(on?"🟢 ":"⚪ ")+esc(nm[k]||"HP belum diberi nama")+(k===me?" (HP ini)":"")+'</b><button class="btn" data-dn="'+esc(k)+'" style="flex:0 0 auto;padding:6px 12px">Nama</button></div>'
+  +'<p class="info" style="margin:4px 0 0">'+esc(d)+" · peran "+(v.r==="admin"?"admin":"petugas")+'</p><p class="info" style="margin:2px 0 0">Terakhir aktif: '+esc(devT(v.l))+" ("+devAgo(v.l)+')</p><p class="info" style="margin:2px 0 0">Dibuka '+(v.n||1)+"× · sejak "+esc(devT(v.f))+'</p>'
+  +'<details style="margin-top:4px"><summary class="info" style="cursor:pointer">Riwayat waktu buka</summary><div class="info" style="margin:4px 0">'+h+'</div><button class="btn dng" data-dx="'+esc(k)+'" style="padding:6px 12px">Hapus dari daftar</button></details></div>'}).join("")}
+async function devName(k){const m=Object.assign({},(await get("_devnames"))||{}),v=prompt("Nama HP atau petugas (kosongkan untuk menghapus nama):",m[k]||"");if(v===null)return;const n=v.trim().slice(0,40);if(n)m[k]=n;else delete m[k];await put("_devnames",m);devRender()}
+$("#dvl").addEventListener("click",async e=>{const n=e.target.closest("[data-dn]"),x=e.target.closest("[data-dx]");if(n)devName(n.dataset.dn);else if(x&&confirm("Hapus catatan perangkat ini dari daftar? Akan muncul lagi jika HP itu membuka aplikasi.")){await del(x.dataset.dx);devRender()}});
+setInterval(()=>{if(role==="admin"&&CV==="admin"&&!document.hidden)devRender()},15000);
 const _s=ls.g("sesi","");if(_s==="petugas"||_s==="admin")enter(_s);
 </script></body></html>
