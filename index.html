@@ -184,6 +184,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <div id="kv" style="margin-top:10px;overflow:hidden"></div>
   <details class="ex"><summary>Cadangan data</summary>
   <button class="btn p" id="ex2" style="width:100%;margin-top:8px">Unduh cadangan</button>
+  <button class="btn" id="wa2" style="width:100%;margin-top:8px">Kirim ke WhatsApp</button>
   <p class="info" id="am3"></p>
   <label class="btn" style="display:block;margin:10px 0 0;text-align:center">Pulihkan dari cadangan<input id="im2" type="file" accept=".json,.txt,application/json,text/plain" class="hide"></label></details>
  </section>
@@ -209,6 +210,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <div id="dvl" style="max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
   <label>Cadangan data</label>
   <div class="row"><button class="btn" id="ex">Unduh cadangan</button><label class="btn" style="margin:0;text-align:center">Pulihkan<input id="im" type="file" accept=".json,.txt,application/json,text/plain" class="hide"></label></div>
+  <button class="btn" id="wa1" style="width:100%;margin-top:8px">Kirim ke WhatsApp</button>
   <p class="info" id="am2"></p>
   <button class="btn" id="qshow" style="width:100%;margin-top:8px">⏱ Lihat pemakaian kuota sinkron</button>
  </section>
@@ -824,5 +826,12 @@ async function devRender(){const box=$("#dvl");if(!box)return;const L=await lall
 async function devName(k){const m=Object.assign({},(await get("_devnames"))||{}),v=prompt("Nama HP atau petugas (kosongkan untuk menghapus nama):",m[k]||"");if(v===null)return;const n=v.trim().slice(0,40);if(n)m[k]=n;else delete m[k];await put("_devnames",m);devRender()}
 $("#dvl").addEventListener("click",async e=>{const n=e.target.closest("[data-dn]"),x=e.target.closest("[data-dx]");if(n)devName(n.dataset.dn);else if(x&&confirm("Hapus catatan perangkat ini dari daftar? Akan muncul lagi jika HP itu membuka aplikasi.")){await del(x.dataset.dx);devRender()}});
 setInterval(()=>{if(role==="admin"&&CV==="admin"&&!document.hidden)devRender()},15000);
+async function bkFile(){const m=await lall();return new File([JSON.stringify([...m.entries()])],"cadangan-meter-"+now.toISOString().slice(0,10)+".txt",{type:"text/plain"})}
+async function bkWA(el){el.textContent="Menyiapkan cadangan...";try{const f=await bkFile(),tt="Cadangan data meter";
+ if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:tt});ls.s("lastbk",new Date().toISOString());el.textContent="Menu kirim dibuka. Pilih WhatsApp, lalu pilih admin.";return}catch(e){
+  if(e&&e.name==="AbortError"){el.textContent="Pengiriman dibatalkan.";return}
+  if(e&&e.name==="NotAllowedError"){el.textContent="";const b=document.createElement("button");b.className="btn p";b.style.width="100%";b.textContent="Ketuk untuk kirim "+f.name;b.onclick=async()=>{try{await navigator.share({files:[f],title:tt});ls.s("lastbk",new Date().toISOString());b.remove()}catch(e2){if(!e2||e2.name!=="AbortError"){dlFile(f);el.textContent="Kirim gagal, file "+f.name+" diunduh. Buka WhatsApp, ketuk klip, pilih Dokumen."}}};el.appendChild(b);return}}}
+ dlFile(f);el.textContent="Browser ini tidak bisa langsung kirim, jadi "+f.name+" diunduh. Buka WhatsApp, ketuk klip, pilih Dokumen, lalu pilih file itu."}catch(e){el.textContent="Cadangan tidak jadi dikirim."}}
+$("#wa2").onclick=()=>bkWA($("#am3"));$("#wa1").onclick=()=>bkWA($("#am2"));
 const _s=ls.g("sesi","");if(_s==="petugas"||_s==="admin")enter(_s);
 </script></body></html>
