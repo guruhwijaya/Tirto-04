@@ -208,6 +208,12 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <label>Perangkat yang memakai aplikasi</label>
   <p class="info" id="dvs"></p>
   <div id="dvl" style="max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
+  <label>Cadangan otomatis Firebase</label>
+  <p class="info" id="fbs"></p>
+  <input id="fbk" placeholder="apiKey (diawali AIza...)" autocomplete="off" style="width:100%;margin-top:6px">
+  <input id="fbp" placeholder="projectId (contoh: tirto-04)" autocomplete="off" style="width:100%;margin-top:6px">
+  <div class="row" style="margin-top:6px"><button class="btn p" id="fbsv">Simpan &amp; tes</button><button class="btn" id="fbal">Salin semua data</button></div>
+  <p class="info">Saat kuota Apps Script habis, sinkron pindah otomatis ke Firebase. Data tetap dikirim ke Google Sheet begitu kuota pulih.</p>
   <label>Cadangan data</label>
   <div class="row"><button class="btn" id="ex">Unduh cadangan</button><label class="btn" style="margin:0;text-align:center">Pulihkan<input id="im" type="file" accept=".json,.txt,application/json,text/plain" class="hide"></label></div>
   <button class="btn" id="wa1" style="width:100%;margin-top:8px">Kirim ke WhatsApp</button>
@@ -242,7 +248,7 @@ function qg(){if(!Q){try{Q=JSON.parse(ls.g("qz","null"))}catch(e){}if(!Q||typeof
 function qClr(man){const q=qg(),r=q.r;q.p=0;q.d=0;q.r="";if(r==="est"){if(man)q.ov=1;else{q.s=q.n=q.ms=q.ov=0}}qf=r==="est"?0:QNETN-1;qSv()}
 function qResume(man){qClr(man);sync(true)}
 const fastOn=()=>{fastUntil=Date.now()+12e4},progOn=()=>{const e=$("#v-prog");return!!e&&!e.classList.contains("hide")};
-function pollIv(){const n=Date.now(),f=role==="admin"&&(n<fastUntil||progOn())&&qPct()<50;return qPct()>=100?3e5:(f?15e3:6e4)}
+function pollIv(){const n=Date.now(),fb=!!FBC(),f=role==="admin"&&(n<fastUntil||progOn())&&(fb||qPct()<50);return!fb&&qPct()>=100?3e5:(f?15e3:6e4)}
 function qBlk(){const q=qg();if(!q.p)return false;if(Date.now()<q.p)return true;qClr(false);setTimeout(()=>sync(true),200);return false}
 const qPct=()=>Math.min(100,Math.round(qg().ms/QLIM*100));
 function qLeft(){const s=Math.max(0,Math.ceil((qg().p-Date.now())/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),c=s%60,z=x=>("0"+x).slice(-2);return(h?h+":":"")+z(m)+":"+z(c)}
@@ -252,7 +258,7 @@ function qAdd(t0){const q=qg(),n=Date.now();if(!q.s)q.s=t0;q.n++;q.ms+=Math.max(
 function qFail(t0,e){if(e&&(e.srv||e.q===1)){qAdd(t0);qf=0;if(e.q===1||QRX.test(e.message||""))qHit("srv");return}
  if(!navigator.onLine){qf=0;return}if(++qf>=QNETN)qHit("net")}
 function qSyx(t,k){if(typeof QLIM==="undefined")return[t,k];const q=qg();
- if(q.p&&Date.now()<q.p)return["⏸ "+(q.r==="est"?"Kuota penuh · lanjut ":q.r==="srv"?"Kuota Google habis · coba lagi ":"Sinkron dijeda · coba lagi ")+qLeft()+". Data aman di HP.","off"];
+ if(q.p&&Date.now()<q.p)return["⏸ "+(q.r==="est"?"Kuota penuh · lanjut ":q.r==="srv"?"Kuota Google habis · coba lagi ":"Sinkron dijeda · coba lagi ")+qLeft()+". Data aman di HP."+(FBS&&FBS.fo&&FBS.t&&!FBS.e&&Date.now()-new Date(FBS.t)<3e5?" Firebase aktif.":""),"off"];
  {const p=qPct();t+=" · ⏱ "+p+"%";if(k==="ok")k=p>=80?"hot":p>=50?"warn":"ok"}return[t,k]}
 function qUI(){const c=$("#qcd");if(c)c.textContent=qLeft();if(qBlk()){const t=$("#sy .t");if(t)t.textContent=qSyx("","off")[0];else st("","off")}}
 function qModal(){const q=qg(),pa=qBlk(),p=qPct();let bt="";try{bt=ls.g("lastbk","")}catch(e){}
@@ -287,9 +293,9 @@ function syd(){const b=$("#syb"),pn=$("#syp");if(!b||!pn)return;const dk=jl("dir
 {const lo=ls.g("lastok","");if(lo)st("Terakhir tersinkron "+fmtT(lo),"run")}
 document.addEventListener("click",e=>{if(e.target.id==="syb"){$("#syp").classList.toggle("hide");syd()}});
 let busy=false,again=false;
-async function put(k,v){await lput(k,v);mark(k,true);fastOn();sync()}
-async function del(k){await ldel(k);mark(k,false);js("pdel",[...new Set([...jl("pdel"),k])]);fastOn();sync()}
-async function sync(full){if(busy){again=true;return}if(qBlk()){st("","off");return}lastSy=Date.now();if(!navigator.onLine){st("Offline. Data tersimpan di HP dan dikirim saat ada sinyal.","off");return}
+async function put(k,v){await lput(k,v);mark(k,true);fbAdd(k,1);fastOn();sync()}
+async function del(k){await ldel(k);mark(k,false);fbAdd(k,0);js("pdel",[...new Set([...jl("pdel"),k])]);fastOn();sync()}
+async function sync(full){if(busy){again=true;return}if(qBlk()){st("","off");fbRun(true);return}lastSy=Date.now();if(!navigator.onLine){st("Offline. Data tersimpan di HP dan dikirim saat ada sinyal.","off");return}
  busy=true;again=false;ERR={};st("Menyinkronkan...","run");
  try{
   if(!ls.g("migrated","")){const a=await lall();js("dirty",[...new Set([...jl("dirty"),...a.keys()])]);ls.s("migrated","1")}
@@ -298,7 +304,7 @@ async function sync(full){if(busy){again=true;return}if(qBlk()){st("","off");ret
   for(const k of jl("dirty")){try{const o=await get(k);let v=o;
    if(!o){mark(k,false);continue}
    if(o.p&&String(o.p).startsWith("data:"))v=Object.assign({},o,{p:await upl(k,o.p)});
-   await rpush(k,v);
+   await rpush(k,v);if(v!==o)fbAdd(k,1);
    if(JSON.stringify(await get(k))===JSON.stringify(o)){await lput(k,v);mark(k,false)}}catch(e){nt(e);bad++;ERR[k]=String(e.message||e);lastErr=k+": "+(e.message||e)}}
   const lp=ls.g("lastpull2",""),rows=(await gs("pull",{since:lp})).rows,loc=await lall(),dirty=new Set(jl("dirty"));let ch=false,mx=0;
   for(const r of rows){mx=Math.max(mx,+new Date(r.updated_at)||0);if(dirty.has(r.key))continue;if(JSON.stringify(loc.get(r.key))!==JSON.stringify(r.data)){await lput(r.key,r.data);ch=true}}
@@ -309,8 +315,8 @@ async function sync(full){if(busy){again=true;return}if(qBlk()){st("","off");ret
    ls.s("lastfull",String(Date.now()))}
   const pn=await get("_pin");if(pn&&!jl("dirty").includes("_pin"))await takePin(pn);
   if(ch){fastOn();await loadExtra()}
-  const p=jl("dirty").length+jl("pdel").length;ls.s("lastok",new Date().toISOString());st((bad?bad+" data gagal dikirim ("+lastErr.slice(0,90)+"). Data lain terkirim. Ketuk untuk coba lagi.":p?p+" data menunggu dikirim (ketuk untuk coba lagi)":"Tersinkron "+new Date().toTimeString().slice(0,5)),bad?"err":p?"pend":"ok")
- }catch(e){st("Belum tersinkron ("+(e.message||e)+"). Data aman di HP. Ketuk untuk coba lagi.","err")}
+  const p=jl("dirty").length+jl("pdel").length;ls.s("lastok",new Date().toISOString());st((bad?bad+" data gagal dikirim ("+lastErr.slice(0,90)+"). Data lain terkirim. Ketuk untuk coba lagi.":p?p+" data menunggu dikirim (ketuk untuk coba lagi)":"Tersinkron "+new Date().toTimeString().slice(0,5)),bad?"err":p?"pend":"ok");fbRun(false)
+ }catch(e){fbRun(qBlk());st("Belum tersinkron ("+(e.message||e)+"). Data aman di HP. Ketuk untuk coba lagi.","err")}
  busy=false;if(again)sync()}
 $("#qshow").onclick=()=>qModal();
 $("#sy").onclick=()=>{if(qBlk()||(qg().ms&&qPct()>=QW*100))qModal();else sync(true)};
@@ -348,7 +354,7 @@ $("#rkb").onclick=async()=>{const v=$("#rkp").value,e=$("#rke");
   e.textContent="";$("#rkp").value="";ls.s("rekap_ok",String(Date.now()));location.href=REKAP_URL};
 $("#rkp").onkeydown=ev=>{if(ev.key==="Enter")$("#rkb").click()};
 $("#out").onclick=()=>{try{localStorage.removeItem("sesi")}catch(e){}role=null;$("#ed").checked=false;$("#edw").classList.add("hide");$("#nof").checked=false;$("#nofw").classList.add("hide");$("#pc").classList.remove("hide");$("#big").style.display="none";$("#app").classList.add("hide");$("#login").classList.remove("hide");show("catat",1)};
-let CV="catat";function show(v,np){if(!np&&v!==CV){try{history.pushState({v:v},"")}catch(e){}}CV=v;if(v==="catat")rebuild();if(v==="admin"){setTimeout(devRender,0);$("#mx").value=MAXU}["catat","album","prog","admin"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));if(v==="album")album();if(v==="prog")prog();if(v==="admin")count()}
+let CV="catat";function show(v,np){if(!np&&v!==CV){try{history.pushState({v:v},"")}catch(e){}}CV=v;if(v==="catat")rebuild();if(v==="admin"){setTimeout(devRender,0);fbUI(1);$("#mx").value=MAXU}["catat","album","prog","admin"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));if(v==="album")album();if(v==="prog")prog();if(v==="admin")count()}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 async function info(){const i=$("#nm").value;$("#no").value=i===""?"":+i+1;const el=$("#inf"),mh=$("#mh");el.className="info";mh.textContent="";
  if(i===""){el.textContent="";return}
@@ -833,5 +839,55 @@ async function bkWA(el){el.textContent="Menyiapkan cadangan...";try{const f=awai
   if(e&&e.name==="NotAllowedError"){el.textContent="";const b=document.createElement("button");b.className="btn p";b.style.width="100%";b.textContent="Ketuk untuk kirim "+f.name;b.onclick=async()=>{try{await navigator.share({files:[f],title:tt});ls.s("lastbk",new Date().toISOString());b.remove()}catch(e2){if(!e2||e2.name!=="AbortError"){dlFile(f);el.textContent="Kirim gagal, file "+f.name+" diunduh. Buka WhatsApp, ketuk klip, pilih Dokumen."}}};el.appendChild(b);return}}}
  dlFile(f);el.textContent="Browser ini tidak bisa langsung kirim, jadi "+f.name+" diunduh. Buka WhatsApp, ketuk klip, pilih Dokumen, lalu pilih file itu."}catch(e){el.textContent="Cadangan tidak jadi dikirim."}}
 $("#wa2").onclick=()=>bkWA($("#am3"));$("#wa1").onclick=()=>bkWA($("#am2"));
+var FBS={t:"",e:"",fo:0};let fbBusy=false;
+const FBSKIP=k=>!/^[\w-]+$/.test(k)||k.indexOf("_dev_")===0||k==="_pin"||k==="_fbcfg"||k==="_ping";
+function FBC(){try{const c=JSON.parse(ls.g("fbcfg","null"));return c&&c.apiKey&&c.projectId?c:null}catch(e){return null}}
+function fbQ(){try{return JSON.parse(ls.g("fbq","{}"))||{}}catch(e){return{}}}
+function fbQS(o){ls.s("fbq",JSON.stringify(o))}
+function fbAdd(k,on){if(FBSKIP(k)||!FBC())return;const q=fbQ();q[k]=on?1:0;fbQS(q)}
+async function fbLoadCfg(){try{const c=await get("_fbcfg");if(c&&c.apiKey&&c.projectId){const j=JSON.stringify({apiKey:c.apiKey,projectId:c.projectId});if(ls.g("fbcfg","")!==j)ls.s("fbcfg",j)}}catch(e){}}
+async function fbTok(c){let a=null;try{a=JSON.parse(ls.g("fbauth","null"))}catch(e){}
+ if(a&&a.k===c.apiKey&&a.exp>Date.now()+6e4)return a.id;
+ if(a&&a.k===c.apiKey&&a.rt){try{const r=await fetch("https://securetoken.googleapis.com/v1/token?key="+encodeURIComponent(c.apiKey),{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"grant_type=refresh_token&refresh_token="+encodeURIComponent(a.rt)}),j=await r.json();if(r.ok&&j.id_token){const n={k:c.apiKey,id:j.id_token,rt:j.refresh_token,exp:Date.now()+(+j.expires_in)*1e3};ls.s("fbauth",JSON.stringify(n));return n.id}}catch(e){}}
+ const r=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="+encodeURIComponent(c.apiKey),{method:"POST",headers:{"Content-Type":"application/json"},body:'{"returnSecureToken":true}'}),j=await r.json();
+ if(!r.ok)throw new Error((j.error&&j.error.message)||"login gagal");
+ const n={k:c.apiKey,id:j.idToken,rt:j.refreshToken,exp:Date.now()+(+j.expiresIn)*1e3};ls.s("fbauth",JSON.stringify(n));return n.id}
+async function fbCall(path,body){const c=FBC();if(!c)throw new Error("Firebase belum diatur");
+ for(let t=0;t<2;t++){const id=await fbTok(c),r=await fetch("https://firestore.googleapis.com/v1/projects/"+encodeURIComponent(c.projectId)+"/databases/(default)/documents"+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+id},body:JSON.stringify(body)});let j=null;try{j=await r.json()}catch(e){}
+  if(r.ok)return j;if(r.status===401&&t===0){ls.s("fbauth","null");continue}
+  const m=j&&(j.error?j.error.message:(j[0]&&j[0].error&&j[0].error.message));throw new Error(m||"HTTP "+r.status)}}
+function fbStrip(o){return o&&typeof o==="object"&&typeof o.p==="string"&&o.p.indexOf("data:")===0&&o.p.length>8e5?Object.assign({},o,{p:""}):o}
+async function fbPush(){const q=fbQ(),ks=Object.keys(q);if(!ks.length)return 0;const c=FBC(),base="projects/"+c.projectId+"/databases/(default)/documents/r/";
+ for(let i=0;i<ks.length;i+=100){const part=ks.slice(i,i+100),w=[];
+  for(const k of part){let d=!q[k],v="";if(!d){const o=await get(k);if(o==null)d=true;else v=JSON.stringify(fbStrip(o))}
+   w.push({update:{name:base+k,fields:{v:{stringValue:v},d:{booleanValue:d}}},updateTransforms:[{fieldPath:"ts",setToServerValue:"REQUEST_TIME"}]})}
+  await fbCall(":commit",{writes:w});const q2=fbQ();part.forEach(k=>{if(q2[k]===q[k])delete q2[k]});fbQS(q2)}
+ return ks.length}
+async function fbPull(){let since=ls.g("fbsince",""),ch=false;
+ for(let n=0;n<20;n++){const f={from:[{collectionId:"r"}],orderBy:[{field:{fieldPath:"ts"},direction:"ASCENDING"}],limit:500};
+  if(since)f.where={fieldFilter:{field:{fieldPath:"ts"},op:"GREATER_THAN_OR_EQUAL",value:{timestampValue:since}}};
+  const rs=await fbCall(":runQuery",{structuredQuery:f}),rows=(Array.isArray(rs)?rs:[]).filter(x=>x.document);if(!rows.length)break;
+  const dirty=new Set(jl("dirty")),pd=new Set(jl("pdel"));
+  for(const x of rows){const f2=x.document.fields||{},id=decodeURIComponent(x.document.name.split("/").pop());if(FBSKIP(id)||dirty.has(id)||pd.has(id))continue;
+   const cur=await get(id);
+   if(f2.d&&f2.d.booleanValue){if(cur!=null){await ldel(id);ch=true}continue}
+   let v;try{v=JSON.parse((f2.v&&f2.v.stringValue)||"null")}catch(e){continue}if(v==null)continue;
+   if(v&&typeof v==="object"&&!v.p&&cur&&typeof cur==="object"&&cur.p)v.p=cur.p;
+   if(JSON.stringify(cur)!==JSON.stringify(v)){await lput(id,v);ch=true}}
+  since=(rows[rows.length-1].document.fields.ts||{}).timestampValue||since;ls.s("fbsince",since);if(rows.length<500)break}
+ return ch}
+async function fbRun(fo){if(fbBusy||!navigator.onLine)return;await fbLoadCfg();if(!FBC())return;fbBusy=true;
+ try{await fbPush();let ch=false;if(fo)ch=await fbPull();FBS.t=new Date().toISOString();FBS.e="";FBS.fo=fo?1:0;if(ch){fastOn();await loadExtra()}}catch(e){FBS.e=String(e&&e.message||e).slice(0,160)}
+ fbBusy=false;fbUI();if(typeof qUI==="function")qUI()}
+function fbErr(m){return/ADMIN_ONLY|OPERATION_NOT_ALLOWED/i.test(m)?"Login Anonymous belum diaktifkan (Firebase → Authentication → Sign-in method → Anonymous).":/permission|PERMISSION|403/i.test(m)?"Aturan (Rules) Firestore belum dipasang atau menolak akses.":/API key|API_KEY|INVALID_ARGUMENT|400/i.test(m)?"apiKey atau projectId salah.":/NOT_FOUND|404/i.test(m)?"Database Firestore tidak ditemukan. Cek projectId.":m}
+function fbUI(fill){const e=$("#fbs");if(!e)return;const c=FBC(),n=Object.keys(fbQ()).length;
+ if(fill&&c){if(!$("#fbk").value)$("#fbk").value=c.apiKey;if(!$("#fbp").value)$("#fbp").value=c.projectId}
+ e.className="info"+(FBS.e?" err":c?" ok":"");
+ e.textContent=!c?"Belum diatur. Isi apiKey dan projectId dari Firebase, lalu ketuk Simpan & tes.":FBS.e?"Gagal: "+fbErr(FBS.e)+" Antrean "+n+" data.":"Tersambung"+(FBS.t?" · terakhir "+new Date(FBS.t).toTimeString().slice(0,5):"")+(FBS.fo?" · Firebase mengambil alih sinkron":"")+" · antrean "+n+" data."}
+$("#fbsv").onclick=async()=>{const k=$("#fbk").value.trim(),p=$("#fbp").value.trim(),e=$("#fbs");if(!k||!p){e.className="info err";e.textContent="Isi apiKey dan projectId dulu.";return}
+ const c={apiKey:k,projectId:p};ls.s("fbcfg",JSON.stringify(c));ls.s("fbauth","null");e.className="info";e.textContent="Menguji sambungan...";
+ try{await fbCall(":runQuery",{structuredQuery:{from:[{collectionId:"r"}],limit:1}});await put("_fbcfg",c);FBS.e="";FBS.t=new Date().toISOString();fbUI();toast("Firebase tersambung. Ketuk Salin semua data untuk mengisi awal.")}catch(x){FBS.e=String(x&&x.message||x);fbUI()}};
+$("#fbal").onclick=async()=>{const e=$("#fbs");if(!FBC()){e.className="info err";e.textContent="Isi apiKey dan projectId, lalu Simpan & tes dulu.";return}
+ e.className="info";e.textContent="Menyalin semua data ke Firebase...";const m=await lall(),q=fbQ();m.forEach((v,k)=>{if(!FBSKIP(k))q[k]=1});fbQS(q);while(fbBusy)await new Promise(r=>setTimeout(r,300));await fbRun(false);fbUI();if(!FBS.e)toast("Selesai menyalin ke Firebase")};
 const _s=ls.g("sesi","");if(_s==="petugas"||_s==="admin")enter(_s);
 </script></body></html>
