@@ -207,6 +207,7 @@ details.ex{margin-top:14px}details.ex>summary{cursor:pointer;font-weight:600;pad
   <div id="xt" style="max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
   <label>Perangkat yang memakai aplikasi</label>
   <p class="info" id="dvs"></p>
+  <button class="btn hide" id="dvt" style="width:100%;margin:0 0 8px"></button>
   <div id="dvl" style="max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
   <label>Cadangan otomatis Firebase</label>
   <p class="info" id="fbs"></p>
@@ -824,13 +825,19 @@ function devT(i){const d=new Date(i);return isNaN(d)?"-":d.toLocaleString("id-ID
 function devAgo(i){const m=Math.round((Date.now()-new Date(i))/6e4);return m<1?"baru saja":m<60?m+" menit lalu":m<1440?Math.floor(m/60)+" jam lalu":Math.floor(m/1440)+" hari lalu"}
 async function devRender(){const box=$("#dvl");if(!box)return;const L=await lall(),nm=L.get("_devnames")||{},me="_dev_"+ls.g("devid",""),a=[];
  L.forEach((v,k)=>{if(k.startsWith("_dev_")&&v&&typeof v==="object"&&v.l)a.push([k,v])});a.sort((x,y)=>String(y[1].l).localeCompare(String(x[1].l)));
- $("#dvs").textContent=a.length?a.length+' perangkat tercatat. "Dibuka" dihitung tiap masuk atau kembali ke aplikasi setelah lebih dari 5 menit. 🟢 = sedang membuka aplikasi. Ketuk "Nama" untuk memberi nama HP.':"Belum ada perangkat yang tercatat.";
- box.innerHTML=a.map(([k,v])=>{const on=Date.now()-new Date(v.l)<42e4||(k===me&&!document.hidden),d=[v.m,v.b,v.o,v.s].filter(Boolean).join(" · "),h=(v.op||[]).slice().reverse().map(x=>"<div>"+esc(devT(x))+"</div>").join("");
+ const isOn=(k,v)=>Date.now()-new Date(v.l)<42e4||(k===me&&!document.hidden);
+ const old=a.filter(([k,v])=>k!==me&&!nm[k]&&Date.now()-new Date(v.l)>6048e5);
+ if(old.length&&!window.DVCL){window.DVCL=1;(async()=>{try{for(const[k]of old)await del(k)}catch(e){}window.DVCL=0})()}
+ const A=a.filter(x=>!old.includes(x)),on_=A.filter(([k,v])=>isOn(k,v)),shown=window.DVALL?A:on_;
+ {const tb=$("#dvt");if(tb){const o=A.length-on_.length;tb.classList.toggle("hide",!o&&!window.DVALL);tb.textContent=window.DVALL?"Sembunyikan yang offline":"Tampilkan yang offline ("+o+")"}}
+ $("#dvs").textContent=A.length?on_.length+' perangkat online dari '+A.length+' tercatat. "Dibuka" dihitung tiap masuk atau kembali ke aplikasi setelah lebih dari 5 menit. 🟢 = sedang membuka aplikasi. Ketuk "Nama" untuk memberi nama HP.':"Belum ada perangkat yang tercatat.";
+ box.innerHTML=shown.map(([k,v])=>{const on=isOn(k,v),d=[v.m,v.b,v.o,v.s].filter(Boolean).join(" · "),h=(v.op||[]).slice().reverse().map(x=>"<div>"+esc(devT(x))+"</div>").join("");
   return '<div style="padding:10px 12px;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>'+(on?"🟢 ":"⚪ ")+esc(nm[k]||"HP belum diberi nama")+(k===me?" (HP ini)":"")+'</b><button class="btn" data-dn="'+esc(k)+'" style="flex:0 0 auto;padding:6px 12px">Nama</button></div>'
   +'<p class="info" style="margin:4px 0 0">'+esc(d)+" · peran "+(v.r==="admin"?"admin":"petugas")+'</p><p class="info" style="margin:2px 0 0">'+(on?'<b style="color:#16a34a">Sedang membuka aplikasi</b>':"Terakhir aktif: "+esc(devT(v.l))+" ("+devAgo(v.l)+")")+'</p><p class="info" style="margin:2px 0 0">Dibuka '+(v.n||1)+"× · sejak "+esc(devT(v.f))+'</p>'
-  +'<details style="margin-top:4px"><summary class="info" style="cursor:pointer">Riwayat waktu buka</summary><div class="info" style="margin:4px 0">'+h+'</div><button class="btn dng" data-dx="'+esc(k)+'" style="padding:6px 12px">Hapus dari daftar</button></details></div>'}).join("")}
+  +'<details style="margin-top:4px"><summary class="info" style="cursor:pointer">Riwayat waktu buka</summary><div class="info" style="margin:4px 0">'+h+'</div><button class="btn dng" data-dx="'+esc(k)+'" style="padding:6px 12px">Hapus dari daftar</button></details></div>'}).join("")||'<p class="info" style="padding:10px 12px;margin:0">Tidak ada perangkat online.</p>'}
 async function devName(k){const m=Object.assign({},(await get("_devnames"))||{}),v=prompt("Nama HP atau petugas (kosongkan untuk menghapus nama):",m[k]||"");if(v===null)return;const n=v.trim().slice(0,40);if(n)m[k]=n;else delete m[k];await put("_devnames",m);devRender()}
 $("#dvl").addEventListener("click",async e=>{const n=e.target.closest("[data-dn]"),x=e.target.closest("[data-dx]");if(n)devName(n.dataset.dn);else if(x&&confirm("Hapus catatan perangkat ini dari daftar? Akan muncul lagi jika HP itu membuka aplikasi.")){await del(x.dataset.dx);devRender()}});
+$("#dvt").addEventListener("click",()=>{window.DVALL=!window.DVALL;devRender()});
 setInterval(()=>{if(role==="admin"&&CV==="admin"&&!document.hidden)devRender()},15000);
 setInterval(()=>{if(role&&!document.hidden)devPing(role)},18e4);
 async function bkFile(){const m=await lall();return new File([JSON.stringify([...m.entries()])],"cadangan-meter-"+now.toISOString().slice(0,10)+".txt",{type:"text/plain"})}
